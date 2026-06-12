@@ -12,6 +12,8 @@ export interface GroceryList {
   store: string;
   updatedAt: string;
   items: GroceryItem[];
+  totalCost?: number;
+  completedAt?: string;
 }
 
 export interface Recipe {
