@@ -71,20 +71,15 @@ export default function ShoppingScreen() {
     }).start();
   }, [allDone, finishAnim]);
 
-  // Focus programmatique : autoFocus seul est peu fiable dans un Modal Android
-  useEffect(() => {
-    if (costModalVisible) {
-      const t = setTimeout(() => costInputRef.current?.focus(), 150);
-      return () => clearTimeout(t);
-    }
-  }, [costModalVisible]);
-
-  useEffect(() => {
-    if (renameTarget) {
-      const t = setTimeout(() => renameInputRef.current?.focus(), 150);
-      return () => clearTimeout(t);
-    }
-  }, [renameTarget]);
+  // Focus appelé depuis onShow du Modal : autoFocus et les effets sur
+  // visible se déclenchent avant que la fenêtre du modal soit prête sur
+  // Android, et le clavier ne s'ouvre pas
+  const focusCostInput = () => {
+    setTimeout(() => costInputRef.current?.focus(), 100);
+  };
+  const focusRenameInput = () => {
+    setTimeout(() => renameInputRef.current?.focus(), 100);
+  };
 
   useEffect(() => {
     Animated.spring(btnScale, {
@@ -376,6 +371,7 @@ export default function ShoppingScreen() {
         transparent
         animationType="fade"
         statusBarTranslucent
+        onShow={focusCostInput}
         onRequestClose={() => { setCostModalVisible(false); setCostInput(''); }}>
         <KeyboardAvoidingView
           style={styles.modalOverlay}
@@ -393,7 +389,6 @@ export default function ShoppingScreen() {
                 value={costInput}
                 onChangeText={setCostInput}
                 keyboardType="decimal-pad"
-                autoFocus
               />
             </View>
             <View style={styles.modalBtns}>
@@ -418,6 +413,7 @@ export default function ShoppingScreen() {
         transparent
         animationType="fade"
         statusBarTranslucent
+        onShow={focusRenameInput}
         onRequestClose={() => setRenameTarget(null)}>
         <KeyboardAvoidingView
           style={styles.modalOverlay}
@@ -433,7 +429,6 @@ export default function ShoppingScreen() {
               onChangeText={setRenameInput}
               onSubmitEditing={saveRename}
               returnKeyType="done"
-              autoFocus
             />
             <View style={styles.modalBtns}>
               <TouchableOpacity
@@ -538,7 +533,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     backgroundColor: colors.card,
   },
-  itemRowDone: {backgroundColor: colors.surface, borderColor: 'transparent'},
+  itemRowDone: {backgroundColor: colors.surface, borderColor: colors.surface},
   checkbox: {
     width: 30,
     height: 30,
@@ -556,9 +551,6 @@ const styles = StyleSheet.create({
   finishBar: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    backgroundColor: colors.bg,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
   },
   finishBtn: {
     flexDirection: 'row',

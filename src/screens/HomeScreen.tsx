@@ -15,7 +15,7 @@ import {RootStackParamList} from '../types';
 import {getLists} from '../storage';
 import {GroceryList} from '../types';
 import {colors, spacing, radius} from '../theme';
-import {AppBar, Card, Progress, PillTag, SectionLabel, Btn, Chip} from '../components';
+import {Card, Progress, PillTag, SectionLabel, Btn} from '../components';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -123,6 +123,10 @@ export default function HomeScreen() {
               onPress={() => {
                 if (q.screen) {
                   navigation.navigate(q.screen as any);
+                } else if (q.tab) {
+                  // L'onglet appartient au Tab.Navigator parent : navigate
+                  // remonte jusqu'à lui pour changer d'onglet
+                  navigation.navigate(q.tab as any);
                 }
               }}>
               <View style={styles.qaIcon}>

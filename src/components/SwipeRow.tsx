@@ -1,6 +1,7 @@
 import React, {useCallback, useRef} from 'react';
 import {
   Animated,
+  Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -103,11 +104,9 @@ export function SwipeRow({
 
       <GestureDetector gesture={pan}>
         <Animated.View style={[cardStyle, {transform: [{translateX}]}]}>
-          <TouchableOpacity
-            activeOpacity={onPress ? 0.7 : 1}
-            onPress={handlePress}>
-            {children}
-          </TouchableOpacity>
+          {/* Pressable sans feedback d'opacité : la carte translucide
+              révélerait les boutons d'action rendus derrière */}
+          <Pressable onPress={handlePress}>{children}</Pressable>
         </Animated.View>
       </GestureDetector>
     </View>
