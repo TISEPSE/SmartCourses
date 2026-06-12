@@ -1,17 +1,11 @@
 import React, {useEffect, useState} from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
-} from 'react-native';
+import {Alert, View, Text, ScrollView, TouchableOpacity, StyleSheet} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 import {RootStackParamList, GroceryList} from '../types';
-import {getLists} from '../storage';
+import {getLists, deleteList} from '../storage';
 import {colors, spacing, radius} from '../theme';
 import {AppBar, LargeHead, Card, Progress, Fab, Chip} from '../components';
 
@@ -30,6 +24,24 @@ export default function GroceryScreen() {
   }, [navigation]);
 
   const inProgress = lists.filter(l => l.items.some(i => !i.checked)).length;
+
+  const handleDelete = (l: GroceryList) => {
+    Alert.alert(
+      'Supprimer la liste',
+      `Supprimer "${l.name}" ? Cette action est irréversible.`,
+      [
+        {text: 'Annuler', style: 'cancel'},
+        {
+          text: 'Supprimer',
+          style: 'destructive',
+          onPress: async () => {
+            await deleteList(l.id);
+            setLists(prev => prev.filter(item => item.id !== l.id));
+          },
+        },
+      ],
+    );
+  };
 
   return (
     <View style={[styles.container, {paddingTop: insets.top}]}>
@@ -60,7 +72,8 @@ export default function GroceryScreen() {
                 style={styles.listCard}
                 onPress={() =>
                   navigation.navigate('Shopping', {listId: l.id})
-                }>
+                }
+                onLongPress={() => handleDelete(l)}>
                 <View style={styles.listHeader}>
                   <View style={styles.listInfo}>
                     <Text style={styles.listName}>{l.name}</Text>

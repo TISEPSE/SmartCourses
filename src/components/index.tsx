@@ -60,13 +60,15 @@ interface CardProps {
   children: React.ReactNode;
   style?: ViewStyle;
   onPress?: () => void;
+  onLongPress?: () => void;
 }
-export function Card({children, style, onPress}: CardProps) {
-  if (onPress) {
+export function Card({children, style, onPress, onLongPress}: CardProps) {
+  if (onPress || onLongPress) {
     return (
       <TouchableOpacity
         style={[styles.card, style]}
         onPress={onPress}
+        onLongPress={onLongPress}
         activeOpacity={0.7}>
         {children}
       </TouchableOpacity>

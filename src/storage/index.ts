@@ -33,3 +33,8 @@ export async function getPantry(): Promise<PantryItem[]> {
 export async function savePantry(items: PantryItem[]): Promise<void> {
   await AsyncStorage.setItem(KEYS.pantry, JSON.stringify(items));
 }
+
+export const deleteList = async (id: string): Promise<void> => {
+  const lists = await getLists();
+  await saveLists(lists.filter(l => l.id !== id));
+};
