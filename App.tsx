@@ -5,6 +5,7 @@ import {DarkTheme, NavigationContainer} from '@react-navigation/native';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 
 import Navigation from './src/navigation';
+import {SettingsProvider} from './src/context/SettingsContext';
 import {colors} from './src/theme';
 
 const AppTheme = {
@@ -21,12 +22,14 @@ const AppTheme = {
 export default function App() {
   return (
     <GestureHandlerRootView style={{flex: 1}}>
-      <SafeAreaProvider>
-        <StatusBar barStyle="light-content" backgroundColor="#000000" />
-        <NavigationContainer theme={AppTheme}>
-          <Navigation />
-        </NavigationContainer>
-      </SafeAreaProvider>
+      <SettingsProvider>
+        <SafeAreaProvider>
+          <StatusBar barStyle="light-content" backgroundColor="#000000" />
+          <NavigationContainer theme={AppTheme}>
+            <Navigation />
+          </NavigationContainer>
+        </SafeAreaProvider>
+      </SettingsProvider>
     </GestureHandlerRootView>
   );
 }

@@ -5,11 +5,11 @@ import {
   TouchableOpacity,
   StyleSheet,
   ViewStyle,
-  TextStyle,
   ActivityIndicator,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import {colors, radius, spacing, font} from '../theme';
+import {colors, radius, spacing} from '../theme';
+import {useSettings} from '../context/SettingsContext';
 
 // ── AppBar ──────────────────────────────────────────────
 interface AppBarProps {
@@ -131,16 +131,17 @@ export function Btn({
   style,
   loading,
 }: BtnProps) {
+  const {accent, onAccent} = useSettings();
   const btnStyle =
     variant === 'primary'
-      ? styles.btnPrimary
+      ? {backgroundColor: accent}
       : variant === 'tonal'
       ? styles.btnTonal
       : styles.btnOutline;
   const textStyle =
-    variant === 'primary' ? styles.btnTextPrimary : styles.btnTextTonal;
+    variant === 'primary' ? {color: onAccent} : styles.btnTextTonal;
   const height = small ? 36 : 44;
-  const iconColor = variant === 'primary' ? colors.bg : colors.text;
+  const iconColor = variant === 'primary' ? onAccent : colors.text;
 
   return (
     <TouchableOpacity
@@ -150,7 +151,7 @@ export function Btn({
       {loading ? (
         <ActivityIndicator
           size="small"
-          color={variant === 'primary' ? colors.bg : colors.text}
+          color={variant === 'primary' ? onAccent : colors.text}
         />
       ) : (
         <>
@@ -170,20 +171,21 @@ interface ChipProps {
   icon?: string;
 }
 export function Chip({children, on, onPress, icon}: ChipProps) {
+  const {accent, onAccent} = useSettings();
   return (
     <TouchableOpacity
-      style={[styles.chip, on && styles.chipOn]}
+      style={[styles.chip, on && {backgroundColor: accent, borderColor: accent}]}
       onPress={onPress}
       activeOpacity={0.7}>
       {icon && (
         <Icon
           name={icon}
           size={14}
-          color={on ? colors.bg : colors.text2}
+          color={on ? onAccent : colors.text2}
           style={{marginRight: 4}}
         />
       )}
-      <Text style={[styles.chipText, on && styles.chipTextOn]}>{children}</Text>
+      <Text style={[styles.chipText, on && {color: onAccent}]}>{children}</Text>
     </TouchableOpacity>
   );
 }
@@ -193,9 +195,12 @@ interface ProgressProps {
   value: number; // 0-100
 }
 export function Progress({value}: ProgressProps) {
+  const {accent} = useSettings();
   return (
     <View style={styles.progressTrack}>
-      <View style={[styles.progressFill, {width: `${value}%`}]} />
+      <View
+        style={[styles.progressFill, {width: `${value}%`, backgroundColor: accent}]}
+      />
     </View>
   );
 }
@@ -247,10 +252,14 @@ interface FabProps {
   onPress: () => void;
 }
 export function Fab({icon, label, onPress}: FabProps) {
+  const {accent, onAccent} = useSettings();
   return (
-    <TouchableOpacity style={styles.fab} onPress={onPress} activeOpacity={0.8}>
-      <Icon name={icon} size={22} color={colors.bg} />
-      {label && <Text style={styles.fabLabel}>{label}</Text>}
+    <TouchableOpacity
+      style={[styles.fab, {backgroundColor: accent}]}
+      onPress={onPress}
+      activeOpacity={0.8}>
+      <Icon name={icon} size={22} color={onAccent} />
+      {label && <Text style={[styles.fabLabel, {color: onAccent}]}>{label}</Text>}
     </TouchableOpacity>
   );
 }
@@ -418,3 +427,4 @@ const styles = StyleSheet.create({
 
 export {SwipeRow} from './SwipeRow';
 export type {SwipeAction} from './SwipeRow';
+export {AppSwitch} from './AppSwitch';

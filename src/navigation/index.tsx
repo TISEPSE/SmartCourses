@@ -19,7 +19,6 @@ import ProfileScreen from '../screens/ProfileScreen';
 import ShoppingScreen from '../screens/ShoppingScreen';
 import CreateListScreen from '../screens/CreateListScreen';
 import RecipeDetailScreen from '../screens/RecipeDetailScreen';
-import PantryScreen from '../screens/PantryScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import HistoryScreen from '../screens/HistoryScreen';
 import PreferencesScreen from '../screens/PreferencesScreen';
@@ -116,7 +115,6 @@ export default function Navigation() {
       <Stack.Screen name="Shopping" component={ShoppingScreen} />
       <Stack.Screen name="CreateList" component={CreateListScreen} />
       <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} />
-      <Stack.Screen name="Pantry" component={PantryScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="History" component={HistoryScreen} />
       <Stack.Screen name="Preferences" component={PreferencesScreen} />

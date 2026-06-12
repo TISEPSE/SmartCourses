@@ -22,6 +22,7 @@ import {RootStackParamList, GroceryList, GroceryItem} from '../types';
 import {getLists, saveLists} from '../storage';
 import {colors, spacing, radius} from '../theme';
 import {Progress, SwipeRow} from '../components';
+import {useSettings} from '../context/SettingsContext';
 
 type Route = RouteProp<RootStackParamList, 'Shopping'>;
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -31,10 +32,11 @@ export default function ShoppingScreen() {
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
   const {listId} = route.params;
+  const {settings, accent, onAccent, haptic} = useSettings();
 
   const [list, setList] = useState<GroceryList | null>(null);
   const [allLists, setAllLists] = useState<GroceryList[]>([]);
-  const [hidePicked, setHidePicked] = useState(false);
+  const [hidePicked, setHidePicked] = useState(settings.autoHideChecked);
   const [newItem, setNewItem] = useState('');
   const [costModalVisible, setCostModalVisible] = useState(false);
   const [costInput, setCostInput] = useState('');
@@ -106,6 +108,7 @@ export default function ShoppingScreen() {
 
   const toggle = async (itemId: string) => {
     if (!list) return;
+    haptic();
     await persist({
       ...list,
       items: list.items.map(i =>
@@ -129,14 +132,17 @@ export default function ShoppingScreen() {
 
   const removeItem = (item: GroceryItem) => {
     if (!list) return;
+    const doRemove = () => {
+      haptic();
+      persist({...list, items: list.items.filter(i => i.id !== item.id)});
+    };
+    if (!settings.confirmDelete) {
+      doRemove();
+      return;
+    }
     Alert.alert('Supprimer l’article', `Retirer « ${item.name} » de la liste ?`, [
       {text: 'Annuler', style: 'cancel'},
-      {
-        text: 'Supprimer',
-        style: 'destructive',
-        onPress: () =>
-          persist({...list, items: list.items.filter(i => i.id !== item.id)}),
-      },
+      {text: 'Supprimer', style: 'destructive', onPress: doRemove},
     ]);
   };
 
@@ -183,6 +189,7 @@ export default function ShoppingScreen() {
       totalCost: isNaN(cost) ? undefined : cost,
     };
     await persist(updated);
+    haptic();
     setCostModalVisible(false);
     navigation.goBack();
   };
@@ -198,7 +205,10 @@ export default function ShoppingScreen() {
   const done = list.items.filter(i => i.checked).length;
   const total = list.items.length;
   const pct = total ? Math.round((done / total) * 100) : 0;
-  const visible = hidePicked ? list.items.filter(i => !i.checked) : list.items;
+  const ordered = settings.sortCheckedBottom
+    ? [...list.items.filter(i => !i.checked), ...list.items.filter(i => i.checked)]
+    : list.items;
+  const visible = hidePicked ? ordered.filter(i => !i.checked) : ordered;
   const hasText = newItem.trim().length > 0;
   const completedDate = list.completedAt
     ? new Date(list.completedAt).toLocaleDateString('fr-FR', {
@@ -293,8 +303,12 @@ export default function ShoppingScreen() {
                 },
               ]}>
               <View style={[styles.itemRow, item.checked && styles.itemRowDone]}>
-                <View style={[styles.checkbox, item.checked && styles.checkboxOn]}>
-                  {item.checked && <Icon name="check" size={18} color={colors.bg} />}
+                <View
+                  style={[
+                    styles.checkbox,
+                    item.checked && {backgroundColor: accent, borderColor: accent},
+                  ]}>
+                  {item.checked && <Icon name="check" size={18} color={onAccent} />}
                 </View>
                 <View style={styles.itemInfo}>
                   <Text style={[styles.itemName, item.checked && styles.itemNameDone]}>
@@ -326,11 +340,11 @@ export default function ShoppingScreen() {
             },
           ]}>
           <TouchableOpacity
-            style={styles.finishBtn}
+            style={[styles.finishBtn, {backgroundColor: accent}]}
             activeOpacity={0.85}
             onPress={() => setCostModalVisible(true)}>
-            <Icon name="check" size={20} color={colors.bg} />
-            <Text style={styles.finishBtnText}>Terminer</Text>
+            <Icon name="check" size={20} color={onAccent} />
+            <Text style={[styles.finishBtnText, {color: onAccent}]}>Terminer</Text>
           </TouchableOpacity>
         </Animated.View>
       )}
@@ -338,9 +352,14 @@ export default function ShoppingScreen() {
       {/* Bas d'écran : refaire (terminée) ou barre d'ajout (en cours) */}
       {isCompleted ? (
         <View style={[styles.redoWrap, {paddingBottom: insets.bottom + 12}]}>
-          <TouchableOpacity style={styles.redoBtn} activeOpacity={0.85} onPress={redoList}>
-            <Icon name="refresh" size={20} color={colors.bg} />
-            <Text style={styles.redoBtnText}>Refaire cette liste</Text>
+          <TouchableOpacity
+            style={[styles.redoBtn, {backgroundColor: accent}]}
+            activeOpacity={0.85}
+            onPress={redoList}>
+            <Icon name="refresh" size={20} color={onAccent} />
+            <Text style={[styles.redoBtnText, {color: onAccent}]}>
+              Refaire cette liste
+            </Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -356,10 +375,13 @@ export default function ShoppingScreen() {
           />
           <Animated.View style={{transform: [{scale: btnScale}]}}>
             <TouchableOpacity
-              style={[styles.addBtn, hasText && styles.addBtnActive]}
+              style={[
+                styles.addBtn,
+                hasText && {backgroundColor: accent, borderColor: accent},
+              ]}
               onPress={addItem}
               activeOpacity={0.8}>
-              <Icon name="plus" size={22} color={hasText ? colors.bg : colors.text3} />
+              <Icon name="plus" size={22} color={hasText ? onAccent : colors.text3} />
             </TouchableOpacity>
           </Animated.View>
         </View>

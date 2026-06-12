@@ -28,20 +28,12 @@ export interface Recipe {
   steps: string[];
 }
 
-export interface PantryItem {
-  id: string;
-  name: string;
-  qty: string;
-  category: string;
-}
-
 // Navigation param list
 export type RootStackParamList = {
   Tabs: undefined;
   Shopping: { listId: string };
   CreateList: undefined;
   RecipeDetail: { recipeId: string };
-  Pantry: undefined;
   Settings: undefined;
   Preferences: undefined;
   History: undefined;

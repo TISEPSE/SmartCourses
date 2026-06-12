@@ -29,7 +29,8 @@ interface SwipeRowProps {
   cardStyle?: ViewStyle;
 }
 
-const ACTION_WIDTH = 92;
+const ACTION_WIDTH = 84;
+const ACTION_GAP = 8;
 
 /**
  * Rangée swipeable (glisser vers la gauche pour révéler des actions).
@@ -45,7 +46,7 @@ export function SwipeRow({
   style,
   cardStyle,
 }: SwipeRowProps) {
-  const totalWidth = ACTION_WIDTH * actions.length;
+  const totalWidth = (ACTION_WIDTH + ACTION_GAP) * actions.length;
   const translateX = useRef(new Animated.Value(0)).current;
   const isOpen = useRef(false);
 
@@ -92,10 +93,9 @@ export function SwipeRow({
           <TouchableOpacity
             key={a.label}
             style={[styles.actionBtn, {backgroundColor: a.color}]}
-            onPress={() => {
-              settle(false);
-              a.onPress();
-            }}>
+            // Pas de settle(false) : la rangée reste ouverte pendant que
+            // le modal/l'alerte s'affiche, rien ne bouge derrière
+            onPress={a.onPress}>
             <Icon name={a.icon} size={22} color={colors.text} />
             <Text style={styles.actionLabel}>{a.label}</Text>
           </TouchableOpacity>
@@ -127,11 +127,11 @@ const styles = StyleSheet.create({
   },
   actionBtn: {
     width: ACTION_WIDTH,
+    marginLeft: ACTION_GAP,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
-    borderLeftWidth: 4,
-    borderLeftColor: colors.bg,
+    borderRadius: radius.lg,
     paddingHorizontal: 10,
   },
   actionLabel: {

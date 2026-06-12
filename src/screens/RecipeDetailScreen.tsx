@@ -12,7 +12,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {RootStackParamList, Recipe} from '../types';
 import {getRecipes, saveRecipes} from '../storage';
 import {colors, spacing} from '../theme';
-import {AppBar, PillTag, Btn, Divider} from '../components';
+import {AppBar, PillTag, Divider} from '../components';
 
 type Route = RouteProp<RootStackParamList, 'RecipeDetail'>;
 

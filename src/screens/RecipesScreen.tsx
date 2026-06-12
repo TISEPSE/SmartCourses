@@ -14,7 +14,7 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {RootStackParamList, Recipe} from '../types';
 import {getRecipes} from '../storage';
 import {colors, spacing, radius} from '../theme';
-import {AppBar, LargeHead, Fab} from '../components';
+import {AppBar, LargeHead} from '../components';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 

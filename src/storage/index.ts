@@ -1,10 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {GroceryList, Recipe, PantryItem} from '../types';
+import {GroceryList, Recipe} from '../types';
 
 const KEYS = {
   lists: '@sc_lists',
   recipes: '@sc_recipes',
-  pantry: '@sc_pantry',
 };
 
 export async function getLists(): Promise<GroceryList[]> {
@@ -25,16 +24,19 @@ export async function saveRecipes(recipes: Recipe[]): Promise<void> {
   await AsyncStorage.setItem(KEYS.recipes, JSON.stringify(recipes));
 }
 
-export async function getPantry(): Promise<PantryItem[]> {
-  const raw = await AsyncStorage.getItem(KEYS.pantry);
-  return raw ? JSON.parse(raw) : [];
-}
-
-export async function savePantry(items: PantryItem[]): Promise<void> {
-  await AsyncStorage.setItem(KEYS.pantry, JSON.stringify(items));
-}
-
 export const deleteList = async (id: string): Promise<void> => {
   const lists = await getLists();
   await saveLists(lists.filter(l => l.id !== id));
 };
+
+/** Supprime toutes les listes terminées. */
+export async function clearHistory(): Promise<void> {
+  const lists = await getLists();
+  await saveLists(lists.filter(l => !l.completedAt));
+}
+
+/** Efface toutes les données de l'app (listes, recettes). */
+export async function resetAllData(): Promise<void> {
+  await AsyncStorage.removeItem(KEYS.lists);
+  await AsyncStorage.removeItem(KEYS.recipes);
+}

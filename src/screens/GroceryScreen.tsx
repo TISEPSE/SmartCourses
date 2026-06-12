@@ -14,6 +14,7 @@ import {RootStackParamList, GroceryList} from '../types';
 import {getLists, deleteList} from '../storage';
 import {colors, spacing, radius} from '../theme';
 import {AppBar, LargeHead, Progress, Fab, SwipeRow} from '../components';
+import {useSettings} from '../context/SettingsContext';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -78,6 +79,7 @@ function SwipeableCard({list, onPress, onDelete, deletable}: SwipeableCardProps)
 export default function GroceryScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
+  const {settings, haptic} = useSettings();
   const [lists, setLists] = useState<GroceryList[]>([]);
 
   useEffect(() => {
@@ -91,19 +93,21 @@ export default function GroceryScreen() {
   const completedLists = lists.filter(l => !!l.completedAt);
 
   const handleDelete = (l: GroceryList) => {
+    const doDelete = async () => {
+      haptic();
+      await deleteList(l.id);
+      setLists(prev => prev.filter(item => item.id !== l.id));
+    };
+    if (!settings.confirmDelete) {
+      doDelete();
+      return;
+    }
     Alert.alert(
       'Supprimer la liste',
       `Supprimer "${l.name}" ? Cette action est irréversible.`,
       [
         {text: 'Annuler', style: 'cancel'},
-        {
-          text: 'Supprimer',
-          style: 'destructive',
-          onPress: async () => {
-            await deleteList(l.id);
-            setLists(prev => prev.filter(item => item.id !== l.id));
-          },
-        },
+        {text: 'Supprimer', style: 'destructive', onPress: doDelete},
       ],
     );
   };

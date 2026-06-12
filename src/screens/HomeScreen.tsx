@@ -16,18 +16,20 @@ import {getLists} from '../storage';
 import {GroceryList} from '../types';
 import {colors, spacing, radius} from '../theme';
 import {Card, Progress, PillTag, SectionLabel, Btn} from '../components';
+import {useSettings} from '../context/SettingsContext';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const QUICK_ACTIONS = [
   {icon: 'plus-circle', label: 'Nouvelle liste', screen: 'CreateList' as const},
   {icon: 'book-open-variant', label: 'Recettes', tab: 'Recipes'},
-  {icon: 'fridge', label: 'Frigo', screen: 'Pantry' as const},
+  {icon: 'history', label: 'Historique', screen: 'History' as const},
 ];
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
+  const {settings, accent, onAccent} = useSettings();
   const [lists, setLists] = useState<GroceryList[]>([]);
 
   useEffect(() => {
@@ -47,7 +49,9 @@ export default function HomeScreen() {
       <View style={styles.appbarRow}>
         <View style={{width: 8}} />
         <Text style={styles.appTitle}>Smart Courses</Text>
-        <TouchableOpacity style={styles.iconBtn}>
+        <TouchableOpacity
+          style={styles.iconBtn}
+          onPress={() => navigation.navigate('History')}>
           <Icon name="history" size={23} color={colors.text} />
         </TouchableOpacity>
       </View>
@@ -64,7 +68,9 @@ export default function HomeScreen() {
               month: 'long',
             })}
           </Text>
-          <Text style={styles.greetName}>Bonjour !</Text>
+          <Text style={styles.greetName}>
+            {settings.userName ? `Bonjour ${settings.userName} !` : 'Bonjour !'}
+          </Text>
         </View>
 
         {/* Active list card */}
@@ -75,8 +81,8 @@ export default function HomeScreen() {
               navigation.navigate('Shopping', {listId: active.id})
             }>
             <View style={styles.activeCardHeader}>
-              <View style={styles.activeIconBox}>
-                <Icon name="cart" size={24} color={colors.bg} />
+              <View style={[styles.activeIconBox, {backgroundColor: accent}]}>
+                <Icon name="cart" size={24} color={onAccent} />
               </View>
               <View style={styles.activeCardInfo}>
                 <Text style={styles.activeCardName}>{active.name}</Text>
