@@ -6,9 +6,12 @@ import {
   TextInput,
   StyleSheet,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 import {RootStackParamList, GroceryList} from '../types';
 import {getLists, saveLists} from '../storage';
@@ -21,6 +24,7 @@ const STORES = ['Auchan', 'Carrefour', 'Lidl', 'Intermarché', 'Tout magasin'];
 
 export default function CreateListScreen() {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const [name, setName] = useState('');
   const [store, setStore] = useState('Tout magasin');
   const [loading, setLoading] = useState(false);
@@ -45,13 +49,16 @@ export default function CreateListScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={[styles.container, {paddingTop: insets.top}]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={0}>
       <AppBar title="Nouvelle liste" onBack={() => navigation.goBack()} />
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, {paddingBottom: insets.bottom + 32}]}
         keyboardShouldPersistTaps="handled">
-        <Text style={styles.label}>Nom de la liste</Text>
+        <Text style={styles.sectionLabel}>Nom de la liste</Text>
         <TextInput
           style={styles.field}
           placeholder="Ex : Courses de la semaine"
@@ -60,9 +67,10 @@ export default function CreateListScreen() {
           onChangeText={setName}
           autoFocus
           returnKeyType="done"
+          onSubmitEditing={create}
         />
 
-        <Text style={styles.label2}>Magasin</Text>
+        <Text style={[styles.sectionLabel, styles.sectionLabelGap]}>Magasin</Text>
         <View style={styles.chips}>
           {STORES.map(s => (
             <Chip
@@ -81,7 +89,7 @@ export default function CreateListScreen() {
           </Btn>
         </View>
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -89,7 +97,7 @@ const styles = StyleSheet.create({
   container: {flex: 1, backgroundColor: colors.bg},
   scroll: {flex: 1},
   content: {padding: spacing.lg, paddingTop: spacing.md},
-  label: {
+  sectionLabel: {
     fontSize: 12.5,
     fontWeight: '800',
     letterSpacing: 0.6,
@@ -97,23 +105,15 @@ const styles = StyleSheet.create({
     color: colors.text3,
     marginBottom: 10,
   },
-  label2: {
-    fontSize: 12.5,
-    fontWeight: '800',
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-    color: colors.text3,
-    marginTop: 22,
-    marginBottom: 12,
-  },
+  sectionLabelGap: {marginTop: 28},
   field: {
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.md,
     paddingHorizontal: spacing.lg,
-    paddingVertical: 14,
-    fontSize: 16,
+    paddingVertical: 15,
+    fontSize: 17,
     fontWeight: '600',
     color: colors.text,
   },
@@ -122,5 +122,5 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: spacing.sm,
   },
-  btnWrap: {marginTop: 32},
+  btnWrap: {marginTop: 36},
 });
