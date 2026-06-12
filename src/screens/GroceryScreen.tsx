@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 import {RootStackParamList, GroceryList} from '../types';
 import {getLists} from '../storage';
@@ -17,6 +18,7 @@ import {AppBar, LargeHead, Card, Progress, Fab, Chip} from '../components';
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export default function GroceryScreen() {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const [lists, setLists] = useState<GroceryList[]>([]);
 
@@ -30,7 +32,7 @@ export default function GroceryScreen() {
   const inProgress = lists.filter(l => l.items.some(i => !i.checked)).length;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, {paddingTop: insets.top}]}>
       <AppBar title="Courses" />
       <LargeHead
         title="Mes listes"

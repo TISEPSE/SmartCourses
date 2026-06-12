@@ -1,12 +1,14 @@
 import React from 'react';
 import {View, Text, StyleSheet} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {colors, spacing} from '../theme';
 import {AppBar, LargeHead} from '../components';
 
 export default function AiScreen() {
+  const insets = useSafeAreaInsets();
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, {paddingTop: insets.top}]}>
       <AppBar title="IA" />
       <LargeHead title="Cuisine intelligente" sub="Bientôt disponible" />
       <View style={styles.body}>

@@ -9,6 +9,7 @@ import {
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 import {RootStackParamList} from '../types';
 import {getLists} from '../storage';
@@ -25,6 +26,7 @@ const QUICK_ACTIONS = [
 ];
 
 export default function HomeScreen() {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const [lists, setLists] = useState<GroceryList[]>([]);
 
@@ -41,7 +43,7 @@ export default function HomeScreen() {
   const pct = total ? Math.round((done / total) * 100) : 0;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, {paddingTop: insets.top}]}>
       <View style={styles.appbarRow}>
         <View style={{width: 8}} />
         <Text style={styles.appTitle}>Smart Courses</Text>

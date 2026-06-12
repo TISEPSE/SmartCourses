@@ -9,6 +9,7 @@ import {
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 import {RootStackParamList, Recipe} from '../types';
 import {getRecipes} from '../storage';
@@ -18,6 +19,7 @@ import {AppBar, LargeHead, Fab} from '../components';
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export default function RecipesScreen() {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
 
@@ -31,7 +33,7 @@ export default function RecipesScreen() {
   const favs = recipes.filter(r => r.fav).length;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, {paddingTop: insets.top}]}>
       <AppBar title="Recettes" />
       <LargeHead
         title="Recettes"

@@ -2,6 +2,7 @@ import React from 'react';
 import {View, Text, ScrollView, StyleSheet} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 import {RootStackParamList} from '../types';
 import {colors, spacing} from '../theme';
@@ -10,6 +11,7 @@ import {AppBar, Card, Row, SectionLabel, Btn, Divider} from '../components';
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export default function ProfileScreen() {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
 
   const sections: {label: string; rows: {icon: string; title: string; sub?: string; onPress?: () => void}[]}[] = [
@@ -38,7 +40,7 @@ export default function ProfileScreen() {
   ];
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, {paddingTop: insets.top}]}>
       <AppBar title="Profil" actions={[{icon: 'cog', onPress: () => navigation.navigate('Settings')}]} />
       <ScrollView
         style={styles.scroll}
