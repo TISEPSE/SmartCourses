@@ -21,7 +21,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {RootStackParamList, GroceryList, GroceryItem} from '../types';
 import {getLists, saveLists} from '../storage';
 import {colors, spacing, radius} from '../theme';
-import {Progress} from '../components';
+import {Progress, SwipeRow} from '../components';
 
 type Route = RouteProp<RootStackParamList, 'Shopping'>;
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -39,10 +39,13 @@ export default function ShoppingScreen() {
   const [costModalVisible, setCostModalVisible] = useState(false);
   const [costInput, setCostInput] = useState('');
   const [kbVisible, setKbVisible] = useState(false);
+  const [renameTarget, setRenameTarget] = useState<GroceryItem | null>(null);
+  const [renameInput, setRenameInput] = useState('');
 
   const btnScale = useRef(new Animated.Value(1)).current;
   const finishAnim = useRef(new Animated.Value(0)).current;
   const costInputRef = useRef<TextInput>(null);
+  const renameInputRef = useRef<TextInput>(null);
 
   useEffect(() => {
     (async () => {
@@ -77,11 +80,18 @@ export default function ShoppingScreen() {
   }, [costModalVisible]);
 
   useEffect(() => {
+    if (renameTarget) {
+      const t = setTimeout(() => renameInputRef.current?.focus(), 150);
+      return () => clearTimeout(t);
+    }
+  }, [renameTarget]);
+
+  useEffect(() => {
     Animated.spring(btnScale, {
       toValue: newItem.trim().length > 0 ? 1.08 : 1,
       useNativeDriver: true,
     }).start();
-  }, [newItem]);
+  }, [btnScale, newItem]);
 
   useEffect(() => {
     const show = Keyboard.addListener('keyboardDidShow', () => setKbVisible(true));
@@ -133,6 +143,23 @@ export default function ShoppingScreen() {
           persist({...list, items: list.items.filter(i => i.id !== item.id)}),
       },
     ]);
+  };
+
+  const openRename = (item: GroceryItem) => {
+    setRenameInput(item.name);
+    setRenameTarget(item);
+  };
+
+  const saveRename = async () => {
+    const name = renameInput.trim();
+    if (!name || !list || !renameTarget) return;
+    await persist({
+      ...list,
+      items: list.items.map(i =>
+        i.id === renameTarget.id ? {...i, name} : i,
+      ),
+    });
+    setRenameTarget(null);
   };
 
   const redoList = async () => {
@@ -251,23 +278,37 @@ export default function ShoppingScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled">
           {visible.map(item => (
-            <TouchableOpacity
+            <SwipeRow
               key={item.id}
-              style={[styles.itemRow, item.checked && styles.itemRowDone]}
-              activeOpacity={isCompleted ? 1 : 0.7}
-              disabled={isCompleted}
-              onPress={() => toggle(item.id)}
-              onLongPress={() => removeItem(item)}>
-              <View style={[styles.checkbox, item.checked && styles.checkboxOn]}>
-                {item.checked && <Icon name="check" size={18} color={colors.bg} />}
+              style={styles.itemSwipe}
+              enabled={!isCompleted}
+              onPress={isCompleted ? undefined : () => toggle(item.id)}
+              actions={[
+                {
+                  icon: 'pencil-outline',
+                  label: 'Renommer',
+                  color: colors.cardHi,
+                  onPress: () => openRename(item),
+                },
+                {
+                  icon: 'trash-can-outline',
+                  label: 'Supprimer',
+                  color: '#CC2200',
+                  onPress: () => removeItem(item),
+                },
+              ]}>
+              <View style={[styles.itemRow, item.checked && styles.itemRowDone]}>
+                <View style={[styles.checkbox, item.checked && styles.checkboxOn]}>
+                  {item.checked && <Icon name="check" size={18} color={colors.bg} />}
+                </View>
+                <View style={styles.itemInfo}>
+                  <Text style={[styles.itemName, item.checked && styles.itemNameDone]}>
+                    {item.name}
+                  </Text>
+                  {item.note && <Text style={styles.itemNote}>{item.note}</Text>}
+                </View>
               </View>
-              <View style={styles.itemInfo}>
-                <Text style={[styles.itemName, item.checked && styles.itemNameDone]}>
-                  {item.name}
-                </Text>
-                {item.note && <Text style={styles.itemNote}>{item.note}</Text>}
-              </View>
-            </TouchableOpacity>
+            </SwipeRow>
           ))}
         </ScrollView>
       </View>
@@ -289,15 +330,11 @@ export default function ShoppingScreen() {
               ],
             },
           ]}>
-          <View style={styles.finishInfo}>
-            <Text style={styles.finishSub}>Tout est coché !</Text>
-            <Text style={styles.finishPct}>Liste complète</Text>
-          </View>
           <TouchableOpacity
             style={styles.finishBtn}
             activeOpacity={0.85}
             onPress={() => setCostModalVisible(true)}>
-            <Icon name="check" size={18} color={colors.bg} />
+            <Icon name="check" size={20} color={colors.bg} />
             <Text style={styles.finishBtnText}>Terminer</Text>
           </TouchableOpacity>
         </Animated.View>
@@ -369,6 +406,45 @@ export default function ShoppingScreen() {
                 style={styles.modalBtnPrimary}
                 onPress={finishShopping}>
                 <Text style={styles.modalBtnPrimaryText}>Terminer</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Modal renommage d'article */}
+      <Modal
+        visible={renameTarget !== null}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => setRenameTarget(null)}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <View style={styles.modalBox}>
+            <Text style={styles.modalTitle}>Renommer l’article</Text>
+            <TextInput
+              ref={renameInputRef}
+              style={styles.renameInput}
+              placeholder="Nom de l’article"
+              placeholderTextColor={colors.text3}
+              value={renameInput}
+              onChangeText={setRenameInput}
+              onSubmitEditing={saveRename}
+              returnKeyType="done"
+              autoFocus
+            />
+            <View style={styles.modalBtns}>
+              <TouchableOpacity
+                style={styles.modalBtnSecondary}
+                onPress={() => setRenameTarget(null)}>
+                <Text style={styles.modalBtnSecondaryText}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalBtnPrimary}
+                onPress={saveRename}>
+                <Text style={styles.modalBtnPrimaryText}>Renommer</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -450,6 +526,7 @@ const styles = StyleSheet.create({
   body: {flex: 1},
   scroll: {flex: 1},
   scrollContent: {padding: spacing.md, paddingBottom: 16},
+  itemSwipe: {marginBottom: spacing.sm},
   itemRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -460,7 +537,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.card,
-    marginBottom: spacing.sm,
   },
   itemRowDone: {backgroundColor: colors.surface, borderColor: 'transparent'},
   checkbox: {
@@ -478,28 +554,22 @@ const styles = StyleSheet.create({
   itemNameDone: {textDecorationLine: 'line-through', color: colors.text3},
   itemNote: {fontSize: 12.5, color: colors.text3, fontWeight: '600', marginTop: 2},
   finishBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: 14,
-    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.bg,
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
-  finishInfo: {flex: 1},
-  finishSub: {fontSize: 12.5, fontWeight: '700', color: colors.text2, marginBottom: 3},
-  finishPct: {fontSize: 19, fontWeight: '800', color: colors.text, letterSpacing: -0.5},
   finishBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
     backgroundColor: colors.text,
     borderRadius: 14,
-    paddingHorizontal: 20,
-    paddingVertical: 14,
+    paddingVertical: 16,
   },
-  finishBtnText: {fontSize: 15, fontWeight: '800', color: colors.bg},
+  finishBtnText: {fontSize: 16, fontWeight: '800', color: colors.bg},
   addBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -537,10 +607,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.7)',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
+    paddingBottom: 16,
   },
   modalBox: {
-    width: 300,
+    width: 320,
     backgroundColor: colors.card,
     borderRadius: 20,
     padding: 24,
@@ -568,6 +639,19 @@ const styles = StyleSheet.create({
   },
   currencySymbol: {fontSize: 22, fontWeight: '800', color: colors.text2, marginRight: 8},
   costInput: {flex: 1, fontSize: 28, fontWeight: '800', color: colors.text, paddingVertical: 12},
+  renameInput: {
+    backgroundColor: colors.bg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: 13,
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginTop: 16,
+    marginBottom: 20,
+  },
   modalBtns: {flexDirection: 'row', gap: 10},
   modalBtnSecondary: {
     flex: 1,

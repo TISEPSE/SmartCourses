@@ -415,3 +415,6 @@ const styles = StyleSheet.create({
     color: colors.bg,
   },
 });
+
+export {SwipeRow} from './SwipeRow';
+export type {SwipeAction} from './SwipeRow';

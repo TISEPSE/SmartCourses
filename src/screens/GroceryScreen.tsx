@@ -1,27 +1,21 @@
-import React, {useCallback, useEffect, useRef, useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   Alert,
-  Animated,
-  PanResponder,
   View,
   Text,
   ScrollView,
-  TouchableOpacity,
   StyleSheet,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import {RootStackParamList, GroceryList} from '../types';
 import {getLists, deleteList} from '../storage';
 import {colors, spacing, radius} from '../theme';
-import {AppBar, LargeHead, Progress, Fab} from '../components';
+import {AppBar, LargeHead, Progress, Fab, SwipeRow} from '../components';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-
-const ACTION_WIDTH = 100;
 
 interface SwipeableCardProps {
   list: GroceryList;
@@ -31,44 +25,6 @@ interface SwipeableCardProps {
 }
 
 function SwipeableCard({list, onPress, onDelete, deletable}: SwipeableCardProps) {
-  const translateX = useRef(new Animated.Value(0)).current;
-  const isOpen = useRef(false);
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gs) =>
-        Math.abs(gs.dx) > 8 && Math.abs(gs.dx) > Math.abs(gs.dy) * 1.5,
-      onPanResponderMove: (_, gs) => {
-        const base = isOpen.current ? -ACTION_WIDTH : 0;
-        const next = Math.min(0, Math.max(-ACTION_WIDTH, base + gs.dx));
-        translateX.setValue(next);
-      },
-      onPanResponderRelease: (_, gs) => {
-        const openThreshold = isOpen.current ? -20 : -50;
-        if (gs.dx < openThreshold) {
-          isOpen.current = true;
-          Animated.spring(translateX, {
-            toValue: -ACTION_WIDTH,
-            useNativeDriver: true,
-            bounciness: 4,
-          }).start();
-        } else {
-          isOpen.current = false;
-          Animated.spring(translateX, {
-            toValue: 0,
-            useNativeDriver: true,
-            bounciness: 4,
-          }).start();
-        }
-      },
-    }),
-  ).current;
-
-  const close = useCallback(() => {
-    isOpen.current = false;
-    Animated.spring(translateX, {toValue: 0, useNativeDriver: true}).start();
-  }, [translateX]);
-
   const done = list.items.filter(i => i.checked).length;
   const total = list.items.length;
   const pct = total ? Math.round((done / total) * 100) : 0;
@@ -81,56 +37,41 @@ function SwipeableCard({list, onPress, onDelete, deletable}: SwipeableCardProps)
     : null;
 
   return (
-    <View style={styles.swipeWrapper}>
-      {/* Action derrière la carte */}
-      <View style={[styles.deleteAction, {width: ACTION_WIDTH}]}>
-        <TouchableOpacity
-          style={styles.deleteBtn}
-          onPress={() => {
-            close();
-            onDelete();
-          }}>
-          <Icon name="trash-can-outline" size={22} color={colors.text} />
-          <Text style={styles.deleteBtnLabel}>Supprimer</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Carte swipeable (uniquement si la liste est terminée) */}
-      <Animated.View
-        style={[styles.listCard, {transform: [{translateX}]}]}
-        {...(deletable ? panResponder.panHandlers : {})}>
-        <TouchableOpacity
-          style={styles.listCardInner}
-          onPress={() => {
-            if (isOpen.current) {
-              close();
-            } else {
-              onPress();
-            }
-          }}
-          activeOpacity={0.7}>
-          <View style={styles.listHeader}>
-            <View style={styles.listInfo}>
-              <Text style={styles.listName}>{list.name}</Text>
-              <Text style={styles.listSub}>
-                {isCompleted ? completedSub : list.updatedAt}
-              </Text>
-            </View>
-            {!isCompleted && pct > 0 && pct < 100 && (
-              <Text style={styles.pctBadge}>{pct}%</Text>
-            )}
+    <SwipeRow
+      style={styles.swipeWrapper}
+      cardStyle={styles.listCard}
+      enabled={deletable}
+      onPress={onPress}
+      actions={[
+        {
+          icon: 'trash-can-outline',
+          label: 'Supprimer',
+          color: '#CC2200',
+          onPress: onDelete,
+        },
+      ]}>
+      <View style={styles.listCardInner}>
+        <View style={styles.listHeader}>
+          <View style={styles.listInfo}>
+            <Text style={styles.listName}>{list.name}</Text>
+            <Text style={styles.listSub}>
+              {isCompleted ? completedSub : list.updatedAt}
+            </Text>
           </View>
-          {!isCompleted && (
-            <View style={styles.progressRow}>
-              <View style={styles.progressBar}>
-                <Progress value={pct} />
-              </View>
-              <Text style={styles.progressCount}>{done}/{total}</Text>
-            </View>
+          {!isCompleted && pct > 0 && pct < 100 && (
+            <Text style={styles.pctBadge}>{pct}%</Text>
           )}
-        </TouchableOpacity>
-      </Animated.View>
-    </View>
+        </View>
+        {!isCompleted && (
+          <View style={styles.progressRow}>
+            <View style={styles.progressBar}>
+              <Progress value={pct} />
+            </View>
+            <Text style={styles.progressCount}>{done}/{total}</Text>
+          </View>
+        )}
+      </View>
+    </SwipeRow>
   );
 }
 
@@ -242,32 +183,6 @@ const styles = StyleSheet.create({
   },
   swipeWrapper: {
     marginBottom: spacing.md,
-    overflow: 'hidden',
-    borderRadius: radius.lg,
-  },
-  deleteAction: {
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    bottom: 0,
-    backgroundColor: '#CC2200',
-    borderRadius: radius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderLeftWidth: 4,
-    borderLeftColor: colors.bg,
-  },
-  deleteBtn: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-  },
-  deleteBtnLabel: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: colors.text,
-    letterSpacing: 0.3,
   },
   listCard: {
     backgroundColor: colors.card,
