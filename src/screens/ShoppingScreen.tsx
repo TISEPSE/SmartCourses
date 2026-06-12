@@ -212,7 +212,7 @@ export default function ShoppingScreen() {
         visible={costModalVisible}
         transparent
         animationType="fade"
-        onRequestClose={() => setCostModalVisible(false)}>
+        onRequestClose={() => { setCostModalVisible(false); setCostInput(''); }}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
             <Text style={styles.modalTitle}>Courses terminées !</Text>
@@ -232,7 +232,7 @@ export default function ShoppingScreen() {
             <View style={styles.modalBtns}>
               <TouchableOpacity
                 style={styles.modalBtnSecondary}
-                onPress={() => setCostModalVisible(false)}>
+                onPress={() => { setCostModalVisible(false); setCostInput(''); }}>
                 <Text style={styles.modalBtnSecondaryText}>Annuler</Text>
               </TouchableOpacity>
               <TouchableOpacity
