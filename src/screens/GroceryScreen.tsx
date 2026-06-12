@@ -21,7 +21,7 @@ import {AppBar, LargeHead, Progress, Fab} from '../components';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-const ACTION_WIDTH = 88;
+const ACTION_WIDTH = 100;
 
 interface SwipeableCardProps {
   list: GroceryList;
@@ -216,19 +216,20 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
+    borderLeftWidth: 4,
+    borderLeftColor: colors.bg,
   },
   deleteBtn: {
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
   },
   deleteBtnLabel: {
     fontSize: 11,
     fontWeight: '800',
     color: colors.text,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
   listCard: {
     backgroundColor: colors.card,

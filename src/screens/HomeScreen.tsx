@@ -22,7 +22,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 const QUICK_ACTIONS = [
   {icon: 'plus-circle', label: 'Nouvelle liste', screen: 'CreateList' as const},
   {icon: 'book-open-variant', label: 'Recettes', tab: 'Recipes'},
-  {icon: 'fridge', label: 'Garde-manger', screen: 'Pantry' as const},
+  {icon: 'fridge', label: 'Frigo', screen: 'Pantry' as const},
 ];
 
 export default function HomeScreen() {
@@ -259,9 +259,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 16,
+    padding: 12,
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
   qaIcon: {
     width: 44,

@@ -2,7 +2,9 @@ import React, {useEffect, useRef, useState} from 'react';
 import {
   Animated,
   Keyboard,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -121,7 +123,10 @@ export default function ShoppingScreen() {
   const hasText = newItem.trim().length > 0;
 
   return (
-    <View style={[styles.container, {paddingTop: insets.top}]}>
+    <KeyboardAvoidingView
+      style={[styles.container, {paddingTop: insets.top}]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={0}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.appbar}>
@@ -223,6 +228,7 @@ export default function ShoppingScreen() {
         visible={costModalVisible}
         transparent
         animationType="fade"
+        statusBarTranslucent
         onRequestClose={() => { setCostModalVisible(false); setCostInput(''); }}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
@@ -255,7 +261,7 @@ export default function ShoppingScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

@@ -52,6 +52,7 @@ function Tabs() {
 
   return (
     <Tab.Navigator
+      sceneContainerStyle={{backgroundColor: colors.bg}}
       screenOptions={({route}) => ({
         headerShown: false,
         tabBarStyle: {
