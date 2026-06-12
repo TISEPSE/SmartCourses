@@ -1,6 +1,7 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {
   Animated,
+  Keyboard,
   Modal,
   ScrollView,
   StyleSheet,
@@ -32,6 +33,7 @@ export default function ShoppingScreen() {
   const [newItem, setNewItem] = useState('');
   const [costModalVisible, setCostModalVisible] = useState(false);
   const [costInput, setCostInput] = useState('');
+  const [kbVisible, setKbVisible] = useState(false);
 
   const btnScale = useRef(new Animated.Value(1)).current;
 
@@ -49,6 +51,15 @@ export default function ShoppingScreen() {
       useNativeDriver: true,
     }).start();
   }, [newItem]);
+
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', () => setKbVisible(true));
+    const hide = Keyboard.addListener('keyboardDidHide', () => setKbVisible(false));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
 
   const persist = async (updated: GroceryList) => {
     const next = allLists.map(l => (l.id === updated.id ? updated : l));
@@ -187,7 +198,7 @@ export default function ShoppingScreen() {
       )}
 
       {/* Barre d'ajout sticky */}
-      <View style={[styles.addBar, {paddingBottom: insets.bottom + 8}]}>
+      <View style={[styles.addBar, {paddingBottom: kbVisible ? 4 : insets.bottom + 8}]}>
         <TextInput
           style={styles.addInput}
           placeholder="Ajouter un article…"
