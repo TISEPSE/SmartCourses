@@ -81,7 +81,7 @@ export default function HomeScreen() {
               <View style={styles.activeCardInfo}>
                 <Text style={styles.activeCardName}>{active.name}</Text>
                 <Text style={styles.activeCardSub}>
-                  {active.store} · {total} articles
+                  {total} article{total > 1 ? 's' : ''}
                 </Text>
               </View>
               <PillTag>En cours</PillTag>
@@ -107,7 +107,7 @@ export default function HomeScreen() {
           </Card>
         ) : (
           <Card style={styles.emptyCard} onPress={() => navigation.navigate('CreateList')}>
-            <Icon name="cart-plus" size={32} color={colors.text3} />
+            <Icon name="cart-plus" size={32} color={colors.text} />
             <Text style={styles.emptyCardText}>Créer une liste de courses</Text>
           </Card>
         )}
@@ -156,7 +156,7 @@ export default function HomeScreen() {
                       <View style={styles.listRowInfo}>
                         <Text style={styles.listRowName}>{l.name}</Text>
                         <Text style={styles.listRowSub}>
-                          {l.store} · {t} articles
+                          {t} article{t > 1 ? 's' : ''}
                         </Text>
                       </View>
                       <Text style={styles.listRowPct}>{p}%</Text>

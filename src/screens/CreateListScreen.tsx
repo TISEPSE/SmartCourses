@@ -16,17 +16,14 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {RootStackParamList, GroceryList} from '../types';
 import {getLists, saveLists} from '../storage';
 import {colors, spacing, radius} from '../theme';
-import {AppBar, Btn, Chip} from '../components';
+import {AppBar, Btn} from '../components';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-
-const STORES = ['Auchan', 'Carrefour', 'Lidl', 'Intermarché', 'Tout magasin'];
 
 export default function CreateListScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const [name, setName] = useState('');
-  const [store, setStore] = useState('Tout magasin');
   const [loading, setLoading] = useState(false);
 
   const create = async () => {
@@ -38,7 +35,6 @@ export default function CreateListScreen() {
     const list: GroceryList = {
       id: `l_${Date.now()}`,
       name: name.trim(),
-      store,
       updatedAt: new Date().toLocaleDateString('fr-FR'),
       items: [],
     };
@@ -70,19 +66,6 @@ export default function CreateListScreen() {
           onSubmitEditing={create}
         />
 
-        <Text style={[styles.sectionLabel, styles.sectionLabelGap]}>Magasin</Text>
-        <View style={styles.chips}>
-          {STORES.map(s => (
-            <Chip
-              key={s}
-              on={store === s}
-              icon={store === s ? 'check' : 'storefront'}
-              onPress={() => setStore(s)}>
-              {s}
-            </Chip>
-          ))}
-        </View>
-
         <View style={styles.btnWrap}>
           <Btn icon="check" onPress={create} loading={loading}>
             Créer la liste
@@ -105,7 +88,6 @@ const styles = StyleSheet.create({
     color: colors.text3,
     marginBottom: 10,
   },
-  sectionLabelGap: {marginTop: 28},
   field: {
     backgroundColor: colors.card,
     borderWidth: 1,
@@ -116,11 +98,6 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '600',
     color: colors.text,
-  },
-  chips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
   },
   btnWrap: {marginTop: 36},
 });

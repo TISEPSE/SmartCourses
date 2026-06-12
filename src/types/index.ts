@@ -9,7 +9,7 @@ export interface GroceryItem {
 export interface GroceryList {
   id: string;
   name: string;
-  store: string;
+  store?: string;
   updatedAt: string;
   items: GroceryItem[];
   totalCost?: number;

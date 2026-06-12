@@ -27,9 +27,10 @@ interface SwipeableCardProps {
   list: GroceryList;
   onPress: () => void;
   onDelete: () => void;
+  deletable: boolean;
 }
 
-function SwipeableCard({list, onPress, onDelete}: SwipeableCardProps) {
+function SwipeableCard({list, onPress, onDelete, deletable}: SwipeableCardProps) {
   const translateX = useRef(new Animated.Value(0)).current;
   const isOpen = useRef(false);
 
@@ -87,10 +88,10 @@ function SwipeableCard({list, onPress, onDelete}: SwipeableCardProps) {
         </TouchableOpacity>
       </View>
 
-      {/* Carte swipeable */}
+      {/* Carte swipeable (uniquement si la liste est terminée) */}
       <Animated.View
         style={[styles.listCard, {transform: [{translateX}]}]}
-        {...panResponder.panHandlers}>
+        {...(deletable ? panResponder.panHandlers : {})}>
         <TouchableOpacity
           style={styles.listCardInner}
           onPress={() => {
@@ -104,9 +105,7 @@ function SwipeableCard({list, onPress, onDelete}: SwipeableCardProps) {
           <View style={styles.listHeader}>
             <View style={styles.listInfo}>
               <Text style={styles.listName}>{list.name}</Text>
-              <Text style={styles.listSub}>
-                {list.store} · {list.updatedAt}
-              </Text>
+              <Text style={styles.listSub}>{list.updatedAt}</Text>
             </View>
             {pct > 0 && pct < 100 && (
               <Text style={styles.pctBadge}>{pct}%</Text>
@@ -136,7 +135,8 @@ export default function GroceryScreen() {
     return unsubscribe;
   }, [navigation]);
 
-  const inProgress = lists.filter(l => l.items.some(i => !i.checked)).length;
+  const activeLists = lists.filter(l => !l.completedAt);
+  const completedLists = lists.filter(l => !!l.completedAt);
 
   const handleDelete = (l: GroceryList) => {
     Alert.alert(
@@ -161,7 +161,7 @@ export default function GroceryScreen() {
       <AppBar title="Courses" />
       <LargeHead
         title="Mes listes"
-        sub={`${lists.length} liste${lists.length > 1 ? 's' : ''} · ${inProgress} en cours`}
+        sub={`${activeLists.length} en cours · ${completedLists.length} terminée${completedLists.length > 1 ? 's' : ''}`}
       />
       <ScrollView
         style={styles.scroll}
@@ -175,14 +175,32 @@ export default function GroceryScreen() {
             </Text>
           </View>
         ) : (
-          lists.map(l => (
-            <SwipeableCard
-              key={l.id}
-              list={l}
-              onPress={() => navigation.navigate('Shopping', {listId: l.id})}
-              onDelete={() => handleDelete(l)}
-            />
-          ))
+          <>
+            {activeLists.map(l => (
+              <SwipeableCard
+                key={l.id}
+                list={l}
+                deletable={false}
+                onPress={() => navigation.navigate('Shopping', {listId: l.id})}
+                onDelete={() => handleDelete(l)}
+              />
+            ))}
+
+            {completedLists.length > 0 && (
+              <>
+                <Text style={styles.sectionTitle}>Terminées</Text>
+                {completedLists.map(l => (
+                  <SwipeableCard
+                    key={l.id}
+                    list={l}
+                    deletable
+                    onPress={() => navigation.navigate('Shopping', {listId: l.id})}
+                    onDelete={() => handleDelete(l)}
+                  />
+                ))}
+              </>
+            )}
+          </>
         )}
         <View style={{height: 80}} />
       </ScrollView>
@@ -202,6 +220,15 @@ const styles = StyleSheet.create({
   },
   emptyText: {fontSize: 16, fontWeight: '700', color: colors.text},
   emptyHint: {fontSize: 14, color: colors.text2, fontWeight: '600'},
+  sectionTitle: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    color: colors.text3,
+    marginTop: spacing.lg,
+    marginBottom: spacing.md,
+  },
   swipeWrapper: {
     marginBottom: spacing.md,
     overflow: 'hidden',

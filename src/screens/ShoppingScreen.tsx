@@ -119,7 +119,7 @@ export default function ShoppingScreen() {
   const pct = total ? Math.round((done / total) * 100) : 0;
   const remaining = total - done;
   const visible = hidePicked ? list.items.filter(i => !i.checked) : list.items;
-  const hasChecked = done > 0;
+  const allDone = total > 0 && done === total;
   const hasText = newItem.trim().length > 0;
 
   return (
@@ -135,7 +135,7 @@ export default function ShoppingScreen() {
           </TouchableOpacity>
           <View style={styles.titleBlock}>
             <Text style={styles.listName} numberOfLines={1}>{list.name}</Text>
-            <Text style={styles.listSub}>{list.store} · {total} articles</Text>
+            <Text style={styles.listSub}>{total} article{total > 1 ? 's' : ''}</Text>
           </View>
           <TouchableOpacity style={styles.iconBtn} onPress={() => setHidePicked(h => !h)}>
             <Icon
@@ -183,8 +183,8 @@ export default function ShoppingScreen() {
         </ScrollView>
       </View>
 
-      {/* Barre Terminer (visible quand ≥1 article coché) */}
-      {hasChecked && (
+      {/* Barre Terminer (visible uniquement quand toute la liste est cochée) */}
+      {allDone && (
         <View style={styles.finishBar}>
           <View style={styles.finishInfo}>
             <Text style={styles.finishSub}>
