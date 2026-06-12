@@ -66,9 +66,19 @@ function Tabs() {
 
 export default function Navigation() {
   return (
-    <Stack.Navigator screenOptions={{headerShown: false}}>
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+        animation: 'slide_from_right',
+        animationDuration: 250,
+        fullScreenGestureEnabled: true,
+      }}>
       <Stack.Screen name="Tabs" component={Tabs} />
-      <Stack.Screen name="Shopping" component={ShoppingScreen} />
+      <Stack.Screen
+        name="Shopping"
+        component={ShoppingScreen}
+        options={{animationTypeForReplace: 'push'}}
+      />
       <Stack.Screen name="CreateList" component={CreateListScreen} />
       <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} />
       <Stack.Screen name="Pantry" component={PantryScreen} />
