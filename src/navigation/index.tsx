@@ -55,11 +55,11 @@ function Tabs() {
           );
         },
       })}>
-      <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Grocery" component={GroceryScreen} />
-      <Tab.Screen name="AI" component={AiScreen} />
-      <Tab.Screen name="Recipes" component={RecipesScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
+      <Tab.Screen name="Home" component={HomeScreen} options={{tabBarLabel: 'Accueil'}} />
+      <Tab.Screen name="Grocery" component={GroceryScreen} options={{tabBarLabel: 'Courses'}} />
+      <Tab.Screen name="AI" component={AiScreen} options={{tabBarLabel: 'IA'}} />
+      <Tab.Screen name="Recipes" component={RecipesScreen} options={{tabBarLabel: 'Recettes'}} />
+      <Tab.Screen name="Profile" component={ProfileScreen} options={{tabBarLabel: 'Profil'}} />
     </Tab.Navigator>
   );
 }
