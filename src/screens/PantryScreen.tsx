@@ -8,6 +8,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import {PantryItem} from '../types';
@@ -17,6 +18,7 @@ import {AppBar, LargeHead, Card, Divider} from '../components';
 
 export default function PantryScreen() {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const [items, setItems] = useState<PantryItem[]>([]);
   const [adding, setAdding] = useState('');
 
@@ -46,7 +48,7 @@ export default function PantryScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, {paddingTop: insets.top}]}>
       <AppBar title="Garde-manger" onBack={() => navigation.goBack()} />
       <LargeHead
         title="Mon garde-manger"
@@ -54,7 +56,7 @@ export default function PantryScreen() {
       />
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, {paddingBottom: insets.bottom + 32}]}
         keyboardShouldPersistTaps="handled">
         {/* Add bar */}
         <View style={styles.addRow}>
