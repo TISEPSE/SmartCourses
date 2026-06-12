@@ -72,6 +72,13 @@ function SwipeableCard({list, onPress, onDelete, deletable}: SwipeableCardProps)
   const done = list.items.filter(i => i.checked).length;
   const total = list.items.length;
   const pct = total ? Math.round((done / total) * 100) : 0;
+  const isCompleted = !!list.completedAt;
+  const completedSub = isCompleted
+    ? `Terminée le ${new Date(list.completedAt!).toLocaleDateString('fr-FR')}` +
+      (list.totalCost != null
+        ? ` · ${list.totalCost.toFixed(2).replace('.', ',')} €`
+        : '')
+    : null;
 
   return (
     <View style={styles.swipeWrapper}>
@@ -105,18 +112,22 @@ function SwipeableCard({list, onPress, onDelete, deletable}: SwipeableCardProps)
           <View style={styles.listHeader}>
             <View style={styles.listInfo}>
               <Text style={styles.listName}>{list.name}</Text>
-              <Text style={styles.listSub}>{list.updatedAt}</Text>
+              <Text style={styles.listSub}>
+                {isCompleted ? completedSub : list.updatedAt}
+              </Text>
             </View>
-            {pct > 0 && pct < 100 && (
+            {!isCompleted && pct > 0 && pct < 100 && (
               <Text style={styles.pctBadge}>{pct}%</Text>
             )}
           </View>
-          <View style={styles.progressRow}>
-            <View style={styles.progressBar}>
-              <Progress value={pct} />
+          {!isCompleted && (
+            <View style={styles.progressRow}>
+              <View style={styles.progressBar}>
+                <Progress value={pct} />
+              </View>
+              <Text style={styles.progressCount}>{done}/{total}</Text>
             </View>
-            <Text style={styles.progressCount}>{done}/{total}</Text>
-          </View>
+          )}
         </TouchableOpacity>
       </Animated.View>
     </View>

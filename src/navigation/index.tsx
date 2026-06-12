@@ -1,6 +1,9 @@
 import React from 'react';
 import {Dimensions, Easing} from 'react-native';
-import {createNativeStackNavigator} from '@react-navigation/native-stack';
+import {
+  createStackNavigator,
+  CardStyleInterpolators,
+} from '@react-navigation/stack';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
@@ -21,10 +24,19 @@ import SettingsScreen from '../screens/SettingsScreen';
 import HistoryScreen from '../screens/HistoryScreen';
 import PreferencesScreen from '../screens/PreferencesScreen';
 
-const Stack = createNativeStackNavigator<RootStackParamList>();
+const Stack = createStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
+
+// Timing unique pour toutes les transitions de l'app (tabs + stack)
+const TRANSITION_DURATION = 200;
+const TRANSITION_EASING = Easing.out(Easing.cubic);
+
+const slideTimingSpec = {
+  animation: 'timing' as const,
+  config: {duration: TRANSITION_DURATION, easing: TRANSITION_EASING},
+};
 
 function Tabs() {
   const insets = useSafeAreaInsets();
@@ -37,7 +49,7 @@ function Tabs() {
         animation: 'shift',
         transitionSpec: {
           animation: 'timing',
-          config: {duration: 260, easing: Easing.out(Easing.cubic)},
+          config: {duration: TRANSITION_DURATION, easing: TRANSITION_EASING},
         },
         sceneStyleInterpolator: ({current}) => ({
           sceneStyle: {
@@ -91,17 +103,17 @@ export default function Navigation() {
     <Stack.Navigator
       screenOptions={{
         headerShown: false,
-        animation: 'slide_from_right',
-        animationDuration: 250,
-        fullScreenGestureEnabled: true,
-        contentStyle: {backgroundColor: colors.bg},
+        gestureEnabled: true,
+        gestureDirection: 'horizontal',
+        cardStyle: {backgroundColor: colors.bg},
+        cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
+        transitionSpec: {
+          open: slideTimingSpec,
+          close: slideTimingSpec,
+        },
       }}>
       <Stack.Screen name="Tabs" component={Tabs} />
-      <Stack.Screen
-        name="Shopping"
-        component={ShoppingScreen}
-        options={{animationTypeForReplace: 'push'}}
-      />
+      <Stack.Screen name="Shopping" component={ShoppingScreen} />
       <Stack.Screen name="CreateList" component={CreateListScreen} />
       <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} />
       <Stack.Screen name="Pantry" component={PantryScreen} />

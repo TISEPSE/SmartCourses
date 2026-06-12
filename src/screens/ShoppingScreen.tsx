@@ -1,5 +1,6 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {
+  Alert,
   Animated,
   Keyboard,
   KeyboardAvoidingView,
@@ -13,6 +14,7 @@ import {
   View,
 } from 'react-native';
 import {useNavigation, useRoute, RouteProp} from '@react-navigation/native';
+import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -22,9 +24,10 @@ import {colors, spacing, radius} from '../theme';
 import {Progress} from '../components';
 
 type Route = RouteProp<RootStackParamList, 'Shopping'>;
+type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export default function ShoppingScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
   const {listId} = route.params;
@@ -38,6 +41,8 @@ export default function ShoppingScreen() {
   const [kbVisible, setKbVisible] = useState(false);
 
   const btnScale = useRef(new Animated.Value(1)).current;
+  const finishAnim = useRef(new Animated.Value(0)).current;
+  const costInputRef = useRef<TextInput>(null);
 
   useEffect(() => {
     (async () => {
@@ -46,6 +51,30 @@ export default function ShoppingScreen() {
       setList(ls.find(l => l.id === listId) ?? null);
     })();
   }, [listId]);
+
+  const isCompleted = !!list?.completedAt;
+  const allDone =
+    !!list &&
+    !isCompleted &&
+    list.items.length > 0 &&
+    list.items.every(i => i.checked);
+
+  useEffect(() => {
+    Animated.spring(finishAnim, {
+      toValue: allDone ? 1 : 0,
+      useNativeDriver: true,
+      bounciness: 7,
+      speed: 14,
+    }).start();
+  }, [allDone, finishAnim]);
+
+  // Focus programmatique : autoFocus seul est peu fiable dans un Modal Android
+  useEffect(() => {
+    if (costModalVisible) {
+      const t = setTimeout(() => costInputRef.current?.focus(), 150);
+      return () => clearTimeout(t);
+    }
+  }, [costModalVisible]);
 
   useEffect(() => {
     Animated.spring(btnScale, {
@@ -93,6 +122,36 @@ export default function ShoppingScreen() {
     setNewItem('');
   };
 
+  const removeItem = (item: GroceryItem) => {
+    if (!list) return;
+    Alert.alert('Supprimer l’article', `Retirer « ${item.name} » de la liste ?`, [
+      {text: 'Annuler', style: 'cancel'},
+      {
+        text: 'Supprimer',
+        style: 'destructive',
+        onPress: () =>
+          persist({...list, items: list.items.filter(i => i.id !== item.id)}),
+      },
+    ]);
+  };
+
+  const redoList = async () => {
+    if (!list) return;
+    const copy: GroceryList = {
+      id: `l_${Date.now()}`,
+      name: list.name,
+      updatedAt: new Date().toLocaleDateString('fr-FR'),
+      items: list.items.map((i, idx) => ({
+        ...i,
+        id: `i_${Date.now()}_${idx}`,
+        checked: false,
+      })),
+    };
+    const ls = await getLists();
+    await saveLists([copy, ...ls]);
+    navigation.replace('Shopping', {listId: copy.id});
+  };
+
   const finishShopping = async () => {
     if (!list) return;
     const cost = parseFloat(costInput.replace(',', '.'));
@@ -117,10 +176,15 @@ export default function ShoppingScreen() {
   const done = list.items.filter(i => i.checked).length;
   const total = list.items.length;
   const pct = total ? Math.round((done / total) * 100) : 0;
-  const remaining = total - done;
   const visible = hidePicked ? list.items.filter(i => !i.checked) : list.items;
-  const allDone = total > 0 && done === total;
   const hasText = newItem.trim().length > 0;
+  const completedDate = list.completedAt
+    ? new Date(list.completedAt).toLocaleDateString('fr-FR', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      })
+    : null;
 
   return (
     <KeyboardAvoidingView
@@ -135,25 +199,48 @@ export default function ShoppingScreen() {
           </TouchableOpacity>
           <View style={styles.titleBlock}>
             <Text style={styles.listName} numberOfLines={1}>{list.name}</Text>
-            <Text style={styles.listSub}>{total} article{total > 1 ? 's' : ''}</Text>
-          </View>
-          <TouchableOpacity style={styles.iconBtn} onPress={() => setHidePicked(h => !h)}>
-            <Icon
-              name={hidePicked ? 'eye-off' : 'eye'}
-              size={22}
-              color={hidePicked ? colors.text : colors.text3}
-            />
-          </TouchableOpacity>
-        </View>
-        <View style={styles.progressBlock}>
-          <View style={styles.progressRow}>
-            <Text style={styles.progressCount}>
-              {done}<Text style={styles.progressTotal}> / {total}</Text>
+            <Text style={styles.listSub}>
+              {isCompleted
+                ? `Terminée le ${completedDate}`
+                : `${total} article${total > 1 ? 's' : ''}`}
             </Text>
-            <Text style={styles.progressPct}>{pct}% récupérés</Text>
           </View>
-          <Progress value={pct} />
+          {!isCompleted && (
+            <TouchableOpacity style={styles.iconBtn} onPress={() => setHidePicked(h => !h)}>
+              <Icon
+                name={hidePicked ? 'eye-off' : 'eye'}
+                size={22}
+                color={hidePicked ? colors.text : colors.text3}
+              />
+            </TouchableOpacity>
+          )}
         </View>
+        {isCompleted ? (
+          <View style={styles.recapBlock}>
+            <View style={styles.recapInfo}>
+              <Text style={styles.recapLabel}>Total dépensé</Text>
+              <Text style={styles.recapCost}>
+                {list.totalCost != null
+                  ? `${list.totalCost.toFixed(2).replace('.', ',')} €`
+                  : '—'}
+              </Text>
+            </View>
+            <View style={styles.recapBadge}>
+              <Icon name="check-circle" size={18} color={colors.text} />
+              <Text style={styles.recapBadgeText}>Terminée</Text>
+            </View>
+          </View>
+        ) : (
+          <View style={styles.progressBlock}>
+            <View style={styles.progressRow}>
+              <Text style={styles.progressCount}>
+                {done}<Text style={styles.progressTotal}> / {total}</Text>
+              </Text>
+              <Text style={styles.progressPct}>{pct}% récupérés</Text>
+            </View>
+            <Progress value={pct} />
+          </View>
+        )}
       </View>
 
       {/* Liste des articles — View simple, adjustResize gère le clavier */}
@@ -167,8 +254,10 @@ export default function ShoppingScreen() {
             <TouchableOpacity
               key={item.id}
               style={[styles.itemRow, item.checked && styles.itemRowDone]}
-              activeOpacity={0.7}
-              onPress={() => toggle(item.id)}>
+              activeOpacity={isCompleted ? 1 : 0.7}
+              disabled={isCompleted}
+              onPress={() => toggle(item.id)}
+              onLongPress={() => removeItem(item)}>
               <View style={[styles.checkbox, item.checked && styles.checkboxOn]}>
                 {item.checked && <Icon name="check" size={18} color={colors.bg} />}
               </View>
@@ -183,14 +272,26 @@ export default function ShoppingScreen() {
         </ScrollView>
       </View>
 
-      {/* Barre Terminer (visible uniquement quand toute la liste est cochée) */}
+      {/* Barre Terminer animée (apparaît quand toute la liste est cochée) */}
       {allDone && (
-        <View style={styles.finishBar}>
+        <Animated.View
+          style={[
+            styles.finishBar,
+            {
+              opacity: finishAnim,
+              transform: [
+                {
+                  translateY: finishAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [70, 0],
+                  }),
+                },
+              ],
+            },
+          ]}>
           <View style={styles.finishInfo}>
-            <Text style={styles.finishSub}>
-              {remaining} restant{remaining > 1 ? 's' : ''} · {done} coché{done > 1 ? 's' : ''}
-            </Text>
-            <Text style={styles.finishPct}>{pct}% terminé</Text>
+            <Text style={styles.finishSub}>Tout est coché !</Text>
+            <Text style={styles.finishPct}>Liste complète</Text>
           </View>
           <TouchableOpacity
             style={styles.finishBtn}
@@ -199,29 +300,38 @@ export default function ShoppingScreen() {
             <Icon name="check" size={18} color={colors.bg} />
             <Text style={styles.finishBtnText}>Terminer</Text>
           </TouchableOpacity>
-        </View>
+        </Animated.View>
       )}
 
-      {/* Barre d'ajout sticky */}
-      <View style={[styles.addBar, {paddingBottom: kbVisible ? 4 : insets.bottom + 8}]}>
-        <TextInput
-          style={styles.addInput}
-          placeholder="Ajouter un article…"
-          placeholderTextColor={colors.text3}
-          value={newItem}
-          onChangeText={setNewItem}
-          onSubmitEditing={addItem}
-          returnKeyType="done"
-        />
-        <Animated.View style={{transform: [{scale: btnScale}]}}>
-          <TouchableOpacity
-            style={[styles.addBtn, hasText && styles.addBtnActive]}
-            onPress={addItem}
-            activeOpacity={0.8}>
-            <Icon name="plus" size={22} color={hasText ? colors.bg : colors.text3} />
+      {/* Bas d'écran : refaire (terminée) ou barre d'ajout (en cours) */}
+      {isCompleted ? (
+        <View style={[styles.redoWrap, {paddingBottom: insets.bottom + 12}]}>
+          <TouchableOpacity style={styles.redoBtn} activeOpacity={0.85} onPress={redoList}>
+            <Icon name="refresh" size={20} color={colors.bg} />
+            <Text style={styles.redoBtnText}>Refaire cette liste</Text>
           </TouchableOpacity>
-        </Animated.View>
-      </View>
+        </View>
+      ) : (
+        <View style={[styles.addBar, {paddingBottom: kbVisible ? 4 : insets.bottom + 8}]}>
+          <TextInput
+            style={styles.addInput}
+            placeholder="Ajouter un article…"
+            placeholderTextColor={colors.text3}
+            value={newItem}
+            onChangeText={setNewItem}
+            onSubmitEditing={addItem}
+            returnKeyType="done"
+          />
+          <Animated.View style={{transform: [{scale: btnScale}]}}>
+            <TouchableOpacity
+              style={[styles.addBtn, hasText && styles.addBtnActive]}
+              onPress={addItem}
+              activeOpacity={0.8}>
+              <Icon name="plus" size={22} color={hasText ? colors.bg : colors.text3} />
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
+      )}
 
       {/* Modal saisie coût */}
       <Modal
@@ -230,13 +340,16 @@ export default function ShoppingScreen() {
         animationType="fade"
         statusBarTranslucent
         onRequestClose={() => { setCostModalVisible(false); setCostInput(''); }}>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={styles.modalBox}>
             <Text style={styles.modalTitle}>Courses terminées !</Text>
             <Text style={styles.modalSub}>Combien avez-vous dépensé ?</Text>
             <View style={styles.costRow}>
               <Text style={styles.currencySymbol}>€</Text>
               <TextInput
+                ref={costInputRef}
                 style={styles.costInput}
                 placeholder="0.00"
                 placeholderTextColor={colors.text3}
@@ -259,7 +372,7 @@ export default function ShoppingScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </KeyboardAvoidingView>
   );
@@ -280,6 +393,51 @@ const styles = StyleSheet.create({
   listName: {fontSize: 17, fontWeight: '800', color: colors.text, letterSpacing: -0.3},
   listSub: {fontSize: 12.5, color: colors.text2, fontWeight: '600'},
   progressBlock: {paddingHorizontal: spacing.sm, paddingTop: spacing.sm},
+  recapBlock: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.sm,
+    paddingTop: spacing.sm,
+  },
+  recapInfo: {flex: 1},
+  recapLabel: {fontSize: 12.5, fontWeight: '700', color: colors.text2},
+  recapCost: {
+    fontSize: 34,
+    fontWeight: '800',
+    color: colors.text,
+    letterSpacing: -1,
+    lineHeight: 40,
+  },
+  recapBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.cardHi,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  recapBadgeText: {fontSize: 13, fontWeight: '800', color: colors.text},
+  redoWrap: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm,
+    backgroundColor: colors.bg,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  redoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.text,
+    borderRadius: 14,
+    paddingVertical: 15,
+  },
+  redoBtnText: {fontSize: 15, fontWeight: '800', color: colors.bg},
   progressRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
