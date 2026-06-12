@@ -68,7 +68,7 @@ export default function PantryScreen() {
             returnKeyType="done"
           />
           <TouchableOpacity style={styles.addBtn} onPress={add}>
-            <Icon name="arrow-up" size={22} color={colors.bg} />
+            <Icon name="plus" size={22} color={colors.bg} />
           </TouchableOpacity>
         </View>
 
