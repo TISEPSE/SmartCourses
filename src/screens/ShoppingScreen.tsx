@@ -1,9 +1,7 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {
   Animated,
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -106,12 +104,14 @@ export default function ShoppingScreen() {
   const done = list.items.filter(i => i.checked).length;
   const total = list.items.length;
   const pct = total ? Math.round((done / total) * 100) : 0;
+  const remaining = total - done;
   const visible = hidePicked ? list.items.filter(i => !i.checked) : list.items;
   const hasChecked = done > 0;
   const hasText = newItem.trim().length > 0;
 
   return (
     <View style={[styles.container, {paddingTop: insets.top}]}>
+      {/* Header */}
       <View style={styles.header}>
         <View style={styles.appbar}>
           <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.goBack()}>
@@ -140,16 +140,11 @@ export default function ShoppingScreen() {
         </View>
       </View>
 
-      <KeyboardAvoidingView
-        style={styles.kav}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={0}>
+      {/* Liste des articles — View simple, adjustResize gère le clavier */}
+      <View style={styles.body}>
         <ScrollView
           style={styles.scroll}
-          contentContainerStyle={[
-            styles.scrollContent,
-            {paddingBottom: 80 + insets.bottom},
-          ]}
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled">
           {visible.map(item => (
@@ -170,38 +165,49 @@ export default function ShoppingScreen() {
             </TouchableOpacity>
           ))}
         </ScrollView>
+      </View>
 
-        {hasChecked && (
+      {/* Barre Terminer (visible quand ≥1 article coché) */}
+      {hasChecked && (
+        <View style={styles.finishBar}>
+          <View style={styles.finishInfo}>
+            <Text style={styles.finishSub}>
+              {remaining} restant{remaining > 1 ? 's' : ''} · {done} coché{done > 1 ? 's' : ''}
+            </Text>
+            <Text style={styles.finishPct}>{pct}% terminé</Text>
+          </View>
           <TouchableOpacity
-            style={[styles.finishBtn, {bottom: 72 + insets.bottom}]}
+            style={styles.finishBtn}
             activeOpacity={0.85}
             onPress={() => setCostModalVisible(true)}>
-            <Icon name="check-circle-outline" size={20} color={colors.bg} />
-            <Text style={styles.finishBtnText}>Terminer les courses</Text>
+            <Icon name="check" size={18} color={colors.bg} />
+            <Text style={styles.finishBtnText}>Terminer</Text>
           </TouchableOpacity>
-        )}
-
-        <View style={[styles.addBar, {paddingBottom: insets.bottom + 8}]}>
-          <TextInput
-            style={styles.addInput}
-            placeholder="Ajouter un article…"
-            placeholderTextColor={colors.text3}
-            value={newItem}
-            onChangeText={setNewItem}
-            onSubmitEditing={addItem}
-            returnKeyType="done"
-          />
-          <Animated.View style={{transform: [{scale: btnScale}]}}>
-            <TouchableOpacity
-              style={[styles.addBtn, hasText && styles.addBtnActive]}
-              onPress={addItem}
-              activeOpacity={0.8}>
-              <Icon name="plus" size={22} color={hasText ? colors.bg : colors.text3} />
-            </TouchableOpacity>
-          </Animated.View>
         </View>
-      </KeyboardAvoidingView>
+      )}
 
+      {/* Barre d'ajout sticky */}
+      <View style={[styles.addBar, {paddingBottom: insets.bottom + 8}]}>
+        <TextInput
+          style={styles.addInput}
+          placeholder="Ajouter un article…"
+          placeholderTextColor={colors.text3}
+          value={newItem}
+          onChangeText={setNewItem}
+          onSubmitEditing={addItem}
+          returnKeyType="done"
+        />
+        <Animated.View style={{transform: [{scale: btnScale}]}}>
+          <TouchableOpacity
+            style={[styles.addBtn, hasText && styles.addBtnActive]}
+            onPress={addItem}
+            activeOpacity={0.8}>
+            <Icon name="plus" size={22} color={hasText ? colors.bg : colors.text3} />
+          </TouchableOpacity>
+        </Animated.View>
+      </View>
+
+      {/* Modal saisie coût */}
       <Modal
         visible={costModalVisible}
         transparent
@@ -266,9 +272,9 @@ const styles = StyleSheet.create({
   progressCount: {fontSize: 34, fontWeight: '800', color: colors.text, letterSpacing: -1, lineHeight: 38},
   progressTotal: {fontSize: 18, color: colors.text3, fontWeight: '700'},
   progressPct: {fontSize: 13, fontWeight: '800', color: colors.text2},
-  kav: {flex: 1},
+  body: {flex: 1},
   scroll: {flex: 1},
-  scrollContent: {padding: spacing.md},
+  scrollContent: {padding: spacing.md, paddingBottom: 16},
   itemRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -296,21 +302,29 @@ const styles = StyleSheet.create({
   itemName: {fontSize: 17, fontWeight: '700', color: colors.text, letterSpacing: -0.3},
   itemNameDone: {textDecorationLine: 'line-through', color: colors.text3},
   itemNote: {fontSize: 12.5, color: colors.text3, fontWeight: '600', marginTop: 2},
+  finishBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: 14,
+    backgroundColor: colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  finishInfo: {flex: 1},
+  finishSub: {fontSize: 12.5, fontWeight: '700', color: colors.text2, marginBottom: 3},
+  finishPct: {fontSize: 19, fontWeight: '800', color: colors.text, letterSpacing: -0.5},
   finishBtn: {
-    position: 'absolute',
-    alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 24,
+    backgroundColor: colors.text,
+    borderRadius: 14,
     paddingHorizontal: 20,
-    paddingVertical: 12,
-    elevation: 4,
+    paddingVertical: 14,
   },
-  finishBtnText: {fontSize: 15, fontWeight: '800', color: colors.text},
+  finishBtnText: {fontSize: 15, fontWeight: '800', color: colors.bg},
   addBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -359,7 +373,14 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   modalTitle: {fontSize: 19, fontWeight: '800', color: colors.text, textAlign: 'center'},
-  modalSub: {fontSize: 14, color: colors.text2, fontWeight: '600', textAlign: 'center', marginTop: 6, marginBottom: 20},
+  modalSub: {
+    fontSize: 14,
+    color: colors.text2,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginTop: 6,
+    marginBottom: 20,
+  },
   costRow: {
     flexDirection: 'row',
     alignItems: 'center',
