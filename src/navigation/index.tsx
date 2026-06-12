@@ -1,6 +1,8 @@
-import React from 'react';
+import React, {useCallback, useRef} from 'react';
+import {Animated} from 'react-native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
+import {useFocusEffect} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
@@ -22,6 +24,27 @@ import PreferencesScreen from '../screens/PreferencesScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
+
+function withTabFade<P extends object>(Component: React.ComponentType<P>) {
+  return function TabFadeWrapper(props: P) {
+    const opacity = useRef(new Animated.Value(0)).current;
+    useFocusEffect(
+      useCallback(() => {
+        opacity.setValue(0);
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }).start();
+      }, [opacity]),
+    );
+    return (
+      <Animated.View style={{flex: 1, opacity}}>
+        <Component {...props} />
+      </Animated.View>
+    );
+  };
+}
 
 function Tabs() {
   const insets = useSafeAreaInsets();
@@ -55,11 +78,11 @@ function Tabs() {
           );
         },
       })}>
-      <Tab.Screen name="Home" component={HomeScreen} options={{tabBarLabel: 'Accueil'}} />
-      <Tab.Screen name="Grocery" component={GroceryScreen} options={{tabBarLabel: 'Courses'}} />
-      <Tab.Screen name="AI" component={AiScreen} options={{tabBarLabel: 'IA'}} />
-      <Tab.Screen name="Recipes" component={RecipesScreen} options={{tabBarLabel: 'Recettes'}} />
-      <Tab.Screen name="Profile" component={ProfileScreen} options={{tabBarLabel: 'Profil'}} />
+      <Tab.Screen name="Home" component={withTabFade(HomeScreen)} options={{tabBarLabel: 'Accueil'}} />
+      <Tab.Screen name="Grocery" component={withTabFade(GroceryScreen)} options={{tabBarLabel: 'Courses'}} />
+      <Tab.Screen name="AI" component={withTabFade(AiScreen)} options={{tabBarLabel: 'IA'}} />
+      <Tab.Screen name="Recipes" component={withTabFade(RecipesScreen)} options={{tabBarLabel: 'Recettes'}} />
+      <Tab.Screen name="Profile" component={withTabFade(ProfileScreen)} options={{tabBarLabel: 'Profil'}} />
     </Tab.Navigator>
   );
 }
