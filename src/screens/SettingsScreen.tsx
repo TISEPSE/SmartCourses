@@ -7,21 +7,52 @@ import {
   StyleSheet,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
+import {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
+import {RootStackParamList} from '../types';
 import {colors, spacing} from '../theme';
-import {AppBar, Card, Divider, SectionLabel} from '../components';
+import {AppBar, Card, Divider, SectionLabel, Row} from '../components';
+
+type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export default function SettingsScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const [notifs, setNotifs] = useState(true);
   const [haptics, setHaptics] = useState(true);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, {paddingTop: insets.top}]}>
       <AppBar title="Paramètres" onBack={() => navigation.goBack()} />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}>
+
+        <SectionLabel label="Navigation" />
+        <Card>
+          <Row
+            icon="fridge"
+            title="Garde-manger"
+            subtitle="Gérer les stocks"
+            onPress={() => navigation.navigate('Pantry')}
+          />
+          <Divider />
+          <Row
+            icon="history"
+            title="Historique"
+            subtitle="Courses terminées"
+            onPress={() => navigation.navigate('History')}
+          />
+          <Divider />
+          <Row
+            icon="tune"
+            title="Préférences"
+            subtitle="Régime, budget"
+            onPress={() => navigation.navigate('Preferences')}
+          />
+        </Card>
+
         <SectionLabel label="Notifications" />
         <Card>
           <View style={styles.toggleRow}>

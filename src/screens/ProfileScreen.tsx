@@ -41,7 +41,7 @@ export default function ProfileScreen() {
 
   return (
     <View style={[styles.container, {paddingTop: insets.top}]}>
-      <AppBar title="Profil" actions={[{icon: 'cog', onPress: () => navigation.navigate('Settings')}]} />
+      <AppBar title="Profil" />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
