@@ -20,9 +20,9 @@ import {AppBar, Card, Progress, PillTag, SectionLabel, Btn, Chip} from '../compo
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const QUICK_ACTIONS = [
-  {icon: 'plus-circle', label: 'New list', screen: 'CreateList' as const},
-  {icon: 'book-open-variant', label: 'Recipes', tab: 'Recipes'},
-  {icon: 'fridge', label: 'Pantry', screen: 'Pantry' as const},
+  {icon: 'plus-circle', label: 'Nouvelle liste', screen: 'CreateList' as const},
+  {icon: 'book-open-variant', label: 'Recettes', tab: 'Recipes'},
+  {icon: 'fridge', label: 'Garde-manger', screen: 'Pantry' as const},
 ];
 
 export default function HomeScreen() {
