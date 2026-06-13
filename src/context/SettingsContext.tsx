@@ -49,7 +49,7 @@ const DEFAULTS: AppSettings = {
   userName: '',
   aiBaseUrl: '',
   aiApiKey: '',
-  aiModel: 'llama3.1',
+  aiModel: 'qwen2.5:3b',
 };
 
 const STORAGE_KEY = '@sc_settings';
