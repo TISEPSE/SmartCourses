@@ -33,10 +33,55 @@ réponse.choices[0].message.content
 
 **Conséquences concrètes** — ton serveur doit :
 1. exposer la route **`/v1/chat/completions`** (pas `/api/chat`, pas `/generate`) ;
-2. accepter le mode **non-streaming** (`stream: false`) ;
-3. renvoyer le **format OpenAI** (`choices[].message.content`).
+2. accepter les deux modes (`stream: false` ET `stream: true`) ;
+3. renvoyer le **format OpenAI**.
 
-Ollama coche les 3 cases nativement depuis la v0.1.24. C'est pour ça qu'on le choisit.
+### Deux modes selon l'écran
+
+- **Génération de liste** → `stream: false`, l'app lit `choices[0].message.content`.
+- **Discussion (chat)** → `stream: true`, l'app lit le flux **SSE** : des lignes
+  `data: {…}` où chaque chunk contient `choices[0].delta.content`, terminées par
+  `data: [DONE]`. C'est ce qui fait apparaître le texte au fur et à mesure.
+
+> ⚠️ Le streaming impose que **rien ne bufferise** la réponse entre Ollama et le
+> téléphone. Si tu mets un reverse proxy (Caddy/nginx), il faut désactiver son
+> buffering (voir Étape 4 option B), sinon le texte arrive d'un coup à la fin.
+
+Ollama coche toutes ces cases nativement depuis la v0.1.24. C'est pour ça qu'on le choisit.
+
+---
+
+## Étape 0 — Préparer le VPS (depuis zéro)
+
+### Spécifications minimales
+
+| Usage | CPU | RAM | Disque | GPU |
+|-------|-----|-----|--------|-----|
+| Minimal (`qwen2.5:3b`) | 2 vCPU | 4 Go | 10 Go libres | non |
+| Recommandé (`llama3.1`) | 4 vCPU | 8 Go | 15 Go libres | non |
+| Confortable | 4 vCPU+ | 16 Go | 20 Go | NVIDIA (optionnel) |
+
+OS conseillé : **Ubuntu 22.04 / 24.04 LTS** ou Debian 12.
+
+### Mise à jour + pare-feu de base
+
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y curl ufw
+sudo ufw allow OpenSSH      # ne te coupe pas l'accès SSH
+sudo ufw --force enable
+```
+
+### (Optionnel) GPU NVIDIA
+
+Si ton VPS a un GPU, installe les pilotes + le toolkit container avant Ollama :
+
+```bash
+sudo apt install -y nvidia-driver-535
+nvidia-smi   # doit lister le GPU
+```
+
+Ollama détecte et utilise le GPU automatiquement ensuite.
 
 ---
 
@@ -82,16 +127,23 @@ On le fait écouter sur toutes les interfaces via une surcharge systemd :
 sudo systemctl edit ollama
 ```
 
-Colle exactement ça dans l'éditeur :
+Colle exactement ça dans l'éditeur (les 3 lignes) :
 
 ```ini
 [Service]
 Environment="OLLAMA_HOST=0.0.0.0:11434"
+Environment="OLLAMA_KEEP_ALIVE=30m"
+Environment="OLLAMA_NUM_PARALLEL=2"
 ```
 
-Sauvegarde, puis applique :
+- `OLLAMA_HOST` : écoute sur toutes les interfaces (sinon injoignable du tél).
+- `OLLAMA_KEEP_ALIVE=30m` : garde le modèle en RAM 30 min → 1re réponse plus rapide.
+- `OLLAMA_NUM_PARALLEL=2` : autorise 2 requêtes simultanées.
+
+Active le démarrage automatique au boot, recharge et redémarre :
 
 ```bash
+sudo systemctl enable ollama
 sudo systemctl daemon-reload
 sudo systemctl restart ollama
 ```
@@ -101,6 +153,12 @@ Vérifie qu'il écoute bien sur toutes les interfaces :
 ```bash
 ss -tlnp | grep 11434
 # doit afficher 0.0.0.0:11434 (et pas 127.0.0.1:11434)
+```
+
+(Optionnel) Pré-charge le modèle en mémoire pour éliminer la latence du 1er appel :
+
+```bash
+curl http://localhost:11434/api/generate -d '{"model":"llama3.1","keep_alive":"30m"}'
 ```
 
 ---
@@ -147,12 +205,20 @@ ia.mondomaine.fr {
     # exige le header Authorization avec ton token
     @ok header Authorization "Bearer CHANGE_MOI_TOKEN_SECRET"
     handle @ok {
-        reverse_proxy 127.0.0.1:11434
+        reverse_proxy 127.0.0.1:11434 {
+            # CRUCIAL pour le streaming : envoie chaque chunk SSE
+            # immédiatement au lieu de le bufferiser
+            flush_interval -1
+        }
     }
     # sinon, refus
     respond 401
 }
 ```
+
+> `flush_interval -1` est **obligatoire** pour le mode discussion : sans lui,
+> Caddy accumule la réponse et le texte apparaît d'un bloc à la fin au lieu de
+> défiler. (nginx : `proxy_buffering off;` + `proxy_cache off;`.)
 
 Applique et ferme le port brut (tout passe par Caddy en 443) :
 
@@ -194,7 +260,20 @@ curl https://ia.mondomaine.fr/v1/chat/completions \
 ```
 
 ✅ Réponse attendue : un JSON contenant `"choices":[{"message":{"content":"..."}}]`.
-Si tu vois ça, l'app marchera. Sinon, voir le tableau ci-dessous.
+Si tu vois ça, la génération de liste marchera.
+
+**Tester le streaming** (mode discussion) — ajoute `"stream":true` :
+
+```bash
+curl -N http://IP_DU_VPS:11434/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model":"llama3.1","stream":true,"messages":[{"role":"user","content":"compte jusqu_a 5"}]}'
+```
+
+✅ Tu dois voir s'afficher **progressivement** plusieurs lignes `data: {…}` puis
+`data: [DONE]`. Si tout arrive d'un coup en HTTPS → c'est le buffering du proxy
+(revois `flush_interval -1` dans le Caddyfile). Le `-N` de curl désactive son
+propre buffer pour bien voir le défilement.
 
 ---
 
@@ -217,6 +296,9 @@ Si tu vois ça, l'app marchera. Sinon, voir le tableau ci-dessous.
 | « réponse vide » ou « pas au format » | modèle trop petit pour suivre le JSON | utiliser `llama3.1` (pas un modèle < 3B) |
 | très lent | modèle lourd sans GPU | prendre `qwen2.5:3b` |
 | marche en HTTP, pas en HTTPS | DNS pas encore propagé / port 443 fermé | `sudo ufw allow 443/tcp`, attendre la propagation du domaine |
+| le chat n'affiche pas en streaming (texte d'un bloc) | proxy qui bufferise | ajouter `flush_interval -1` au `reverse_proxy` Caddy (ou `proxy_buffering off` nginx) |
+| 1re réponse très lente puis rapides | modèle (re)chargé en RAM | déjà géré par `OLLAMA_KEEP_ALIVE=30m` (étape 3) |
+| le service ne redémarre pas après reboot | autostart non activé | `sudo systemctl enable ollama` |
 
 Voir les modèles installés sur le VPS :
 

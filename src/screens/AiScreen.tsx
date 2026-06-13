@@ -20,7 +20,7 @@ import {getLists, saveLists} from '../storage';
 import {colors, spacing, radius} from '../theme';
 import {AppBar} from '../components';
 import {useSettings} from '../context/SettingsContext';
-import {AiError, chat, generateGroceryList, GeneratedList, ChatMessage} from '../services/ai';
+import {AiError, chatStream, generateGroceryList, GeneratedList, ChatMessage} from '../services/ai';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Mode = 'list' | 'chat';
@@ -50,8 +50,8 @@ export default function AiScreen() {
 
   const configured = settings.aiBaseUrl.trim().length > 0;
 
-  const scrollToEnd = () => {
-    setTimeout(() => scrollRef.current?.scrollToEnd({animated: true}), 80);
+  const scrollToEnd = (animated = true) => {
+    scrollRef.current?.scrollToEnd({animated});
   };
 
   const send = async () => {
@@ -61,7 +61,7 @@ export default function AiScreen() {
     setInput('');
     setBubbles(prev => [...prev, {role: 'user', text: prompt}]);
     setLoading(true);
-    scrollToEnd();
+    setTimeout(() => scrollToEnd(), 60);
 
     try {
       if (mode === 'list') {
@@ -71,18 +71,37 @@ export default function AiScreen() {
         const history: ChatMessage[] = bubbles
           .filter(b => b.text)
           .map(b => ({role: b.role, content: b.text as string}));
-        const reply = await chat(settings, [
-          ...history,
-          {role: 'user', content: prompt},
-        ]);
-        setBubbles(prev => [...prev, {role: 'assistant', text: reply}]);
+        // Bulle assistant vide, remplie en streaming
+        setBubbles(prev => [...prev, {role: 'assistant', text: ''}]);
+        const {promise} = chatStream(
+          settings,
+          [...history, {role: 'user', content: prompt}],
+          fullText => {
+            setBubbles(prev => {
+              const next = [...prev];
+              next[next.length - 1] = {role: 'assistant', text: fullText};
+              return next;
+            });
+            scrollToEnd(false);
+          },
+        );
+        await promise;
       }
     } catch (e) {
       const msg = e instanceof AiError ? e.message : 'Une erreur est survenue.';
-      setBubbles(prev => [...prev, {role: 'assistant', text: `⚠️ ${msg}`}]);
+      setBubbles(prev => {
+        // Remplace la bulle de streaming vide par l'erreur si besoin
+        const next = [...prev];
+        const last = next[next.length - 1];
+        if (last && last.role === 'assistant' && !last.text && !last.list) {
+          next[next.length - 1] = {role: 'assistant', text: `⚠️ ${msg}`};
+          return next;
+        }
+        return [...next, {role: 'assistant', text: `⚠️ ${msg}`}];
+      });
     } finally {
       setLoading(false);
-      scrollToEnd();
+      setTimeout(() => scrollToEnd(), 60);
     }
   };
 
@@ -215,12 +234,17 @@ export default function AiScreen() {
                   ? [styles.bubbleUser, {backgroundColor: accentSoft}]
                   : styles.bubbleAi,
               ]}>
-              <Text style={styles.bubbleText}>{b.text}</Text>
+              {!isUser && !b.text ? (
+                <ActivityIndicator size="small" color={colors.text2} />
+              ) : (
+                <Text style={styles.bubbleText}>{b.text}</Text>
+              )}
             </View>
           );
         })}
 
-        {loading && (
+        {/* En mode liste, pas de bulle streaming : indicateur dédié */}
+        {loading && mode === 'list' && (
           <View style={[styles.bubble, styles.bubbleAi]}>
             <ActivityIndicator size="small" color={colors.text2} />
           </View>
