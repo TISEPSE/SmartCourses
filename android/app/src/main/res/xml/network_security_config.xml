@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Autorise le trafic HTTP en clair (cleartext) afin de pouvoir joindre un
+  serveur IA auto-hébergé sans HTTPS (ex: Ollama sur un VPS).
+  L'app est distribuée en sideload (APK), pas via le Play Store.
+  Pour plus de sécurité, exposer le serveur en HTTPS via un reverse proxy.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

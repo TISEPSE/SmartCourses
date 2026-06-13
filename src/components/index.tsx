@@ -211,12 +211,13 @@ interface PillTagProps {
   icon?: string;
 }
 export function PillTag({children, icon}: PillTagProps) {
+  const {accent, accentSoft} = useSettings();
   return (
-    <View style={styles.pillTag}>
+    <View style={[styles.pillTag, {backgroundColor: accentSoft, borderColor: 'transparent'}]}>
       {icon && (
-        <Icon name={icon} size={13} color={colors.text2} style={{marginRight: 3}} />
+        <Icon name={icon} size={13} color={accent} style={{marginRight: 3}} />
       )}
-      <Text style={styles.pillTagText}>{children}</Text>
+      <Text style={[styles.pillTagText, {color: accent}]}>{children}</Text>
     </View>
   );
 }

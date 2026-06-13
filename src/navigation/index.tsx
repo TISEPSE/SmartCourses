@@ -10,6 +10,7 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 import {RootStackParamList, TabParamList} from '../types';
 import {colors} from '../theme';
+import {useSettings} from '../context/SettingsContext';
 
 import HomeScreen from '../screens/HomeScreen';
 import GroceryScreen from '../screens/GroceryScreen';
@@ -40,6 +41,7 @@ const slideTimingSpec = {
 
 function Tabs() {
   const insets = useSafeAreaInsets();
+  const {accent} = useSettings();
   const tabBarHeight = 64 + insets.bottom;
 
   return (
@@ -73,7 +75,7 @@ function Tabs() {
           paddingBottom: insets.bottom + 6,
           paddingTop: 6,
         },
-        tabBarActiveTintColor: colors.text,
+        tabBarActiveTintColor: accent,
         tabBarInactiveTintColor: colors.text3,
         tabBarLabelStyle: {fontSize: 11, fontWeight: '700'},
         tabBarIcon: ({color, size}) => {

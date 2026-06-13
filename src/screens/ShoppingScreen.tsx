@@ -32,7 +32,7 @@ export default function ShoppingScreen() {
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
   const {listId} = route.params;
-  const {settings, accent, onAccent, haptic} = useSettings();
+  const {settings, accent, onAccent, accentSoft, haptic} = useSettings();
 
   const [list, setList] = useState<GroceryList | null>(null);
   const [allLists, setAllLists] = useState<GroceryList[]>([]);
@@ -43,6 +43,7 @@ export default function ShoppingScreen() {
   const [kbVisible, setKbVisible] = useState(false);
   const [renameTarget, setRenameTarget] = useState<GroceryItem | null>(null);
   const [renameInput, setRenameInput] = useState('');
+  const [finishMounted, setFinishMounted] = useState(false);
 
   const btnScale = useRef(new Animated.Value(1)).current;
   const finishAnim = useRef(new Animated.Value(0)).current;
@@ -66,12 +67,28 @@ export default function ShoppingScreen() {
     list.items.every(i => i.checked);
 
   useEffect(() => {
-    Animated.spring(finishAnim, {
-      toValue: allDone ? 1 : 0,
-      useNativeDriver: true,
-      bounciness: 7,
-      speed: 14,
-    }).start();
+    if (allDone) {
+      // Monte d'abord, puis repart toujours de 0 → le slide-up est garanti
+      // même après plusieurs cycles coche/décoche
+      setFinishMounted(true);
+      finishAnim.setValue(0);
+      Animated.spring(finishAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        bounciness: 7,
+        speed: 14,
+      }).start();
+    } else {
+      Animated.timing(finishAnim, {
+        toValue: 0,
+        duration: 180,
+        useNativeDriver: true,
+      }).start(({finished}) => {
+        if (finished) {
+          setFinishMounted(false);
+        }
+      });
+    }
   }, [allDone, finishAnim]);
 
   // Focus appelé depuis onShow du Modal : autoFocus et les effets sur
@@ -253,15 +270,15 @@ export default function ShoppingScreen() {
           <View style={styles.recapBlock}>
             <View style={styles.recapInfo}>
               <Text style={styles.recapLabel}>Total dépensé</Text>
-              <Text style={styles.recapCost}>
+              <Text style={[styles.recapCost, {color: accent}]}>
                 {list.totalCost != null
                   ? `${list.totalCost.toFixed(2).replace('.', ',')} €`
                   : '—'}
               </Text>
             </View>
-            <View style={styles.recapBadge}>
-              <Icon name="check-circle" size={18} color={colors.text} />
-              <Text style={styles.recapBadgeText}>Terminée</Text>
+            <View style={[styles.recapBadge, {backgroundColor: accentSoft, borderColor: 'transparent'}]}>
+              <Icon name="check-circle" size={18} color={accent} />
+              <Text style={[styles.recapBadgeText, {color: accent}]}>Terminée</Text>
             </View>
           </View>
         ) : (
@@ -328,7 +345,7 @@ export default function ShoppingScreen() {
       </View>
 
       {/* Barre Terminer animée (apparaît quand toute la liste est cochée) */}
-      {allDone && (
+      {finishMounted && (
         <Animated.View
           style={[
             styles.finishBar,

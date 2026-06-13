@@ -66,19 +66,19 @@ export default function ProfileScreen() {
         <SectionLabel label="Statistiques" />
         <View style={styles.statsRow}>
           <Card style={styles.statCard}>
-            <Text style={styles.statValue}>{completed.length}</Text>
+            <Text style={[styles.statValue, {color: accent}]}>{completed.length}</Text>
             <Text style={styles.statLabel}>
               Liste{completed.length > 1 ? 's' : ''} terminée{completed.length > 1 ? 's' : ''}
             </Text>
           </Card>
           <Card style={styles.statCard}>
-            <Text style={styles.statValue}>
+            <Text style={[styles.statValue, {color: accent}]}>
               {totalSpent.toFixed(0)} €
             </Text>
             <Text style={styles.statLabel}>Total dépensé</Text>
           </Card>
           <Card style={styles.statCard}>
-            <Text style={styles.statValue}>{totalItems}</Text>
+            <Text style={[styles.statValue, {color: accent}]}>{totalItems}</Text>
             <Text style={styles.statLabel}>
               Article{totalItems > 1 ? 's' : ''} acheté{totalItems > 1 ? 's' : ''}
             </Text>

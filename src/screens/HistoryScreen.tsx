@@ -9,12 +9,14 @@ import {RootStackParamList, GroceryList} from '../types';
 import {getLists} from '../storage';
 import {colors, spacing} from '../theme';
 import {AppBar, Card, LargeHead} from '../components';
+import {useSettings} from '../context/SettingsContext';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export default function HistoryScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
+  const {accent} = useSettings();
   const [completed, setCompleted] = useState<GroceryList[]>([]);
 
   useEffect(() => {
@@ -72,7 +74,7 @@ export default function HistoryScreen() {
                     · {l.items.length} article{l.items.length > 1 ? 's' : ''}
                   </Text>
                 </View>
-                <Text style={styles.histCost}>
+                <Text style={[styles.histCost, {color: accent}]}>
                   {l.totalCost != null
                     ? `${l.totalCost.toFixed(2).replace('.', ',')} €`
                     : '—'}

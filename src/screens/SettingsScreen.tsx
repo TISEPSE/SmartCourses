@@ -4,6 +4,7 @@ import {
   View,
   Text,
   ScrollView,
+  TextInput,
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
@@ -14,9 +15,37 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import {RootStackParamList} from '../types';
 import {clearHistory, resetAllData} from '../storage';
-import {colors, spacing} from '../theme';
+import {colors, spacing, radius} from '../theme';
 import {AppBar, AppSwitch, Card, Divider, SectionLabel, Row} from '../components';
 import {useSettings, THEMES, ThemeName} from '../context/SettingsContext';
+
+interface FieldRowProps {
+  label: string;
+  value: string;
+  placeholder: string;
+  onChange: (v: string) => void;
+  secure?: boolean;
+  keyboardType?: 'default' | 'url';
+}
+
+function FieldRow({label, value, placeholder, onChange, secure, keyboardType}: FieldRowProps) {
+  return (
+    <View style={styles.fieldRow}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      <TextInput
+        style={styles.fieldInput}
+        value={value}
+        placeholder={placeholder}
+        placeholderTextColor={colors.text3}
+        onChangeText={onChange}
+        secureTextEntry={secure}
+        autoCapitalize="none"
+        autoCorrect={false}
+        keyboardType={keyboardType === 'url' ? 'url' : 'default'}
+      />
+    </View>
+  );
+}
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -167,6 +196,36 @@ export default function SettingsScreen() {
           />
         </Card>
 
+        <SectionLabel label="Assistant IA" />
+        <Card>
+          <FieldRow
+            label="URL du serveur"
+            value={settings.aiBaseUrl}
+            placeholder="http://mon-vps:11434"
+            onChange={v => setSetting('aiBaseUrl', v)}
+            keyboardType="url"
+          />
+          <Divider />
+          <FieldRow
+            label="Modèle"
+            value={settings.aiModel}
+            placeholder="llama3.1"
+            onChange={v => setSetting('aiModel', v)}
+          />
+          <Divider />
+          <FieldRow
+            label="Clé API (optionnel)"
+            value={settings.aiApiKey}
+            placeholder="laisser vide si aucune"
+            onChange={v => setSetting('aiApiKey', v)}
+            secure
+          />
+        </Card>
+        <Text style={styles.aiHint}>
+          Compatible Ollama, llama.cpp, vLLM, LM Studio… (API OpenAI sur /v1).
+          Le téléphone doit pouvoir joindre cette adresse.
+        </Text>
+
         <SectionLabel label="Navigation" />
         <Card>
           <Row
@@ -238,6 +297,30 @@ const styles = StyleSheet.create({
   },
   themeLabel: {fontSize: 12, fontWeight: '700', color: colors.text3},
   themeLabelSelected: {color: colors.text},
+  fieldRow: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: 12,
+  },
+  fieldLabel: {fontSize: 13, fontWeight: '700', color: colors.text2, marginBottom: 6},
+  fieldInput: {
+    backgroundColor: colors.bg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 11,
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  aiHint: {
+    fontSize: 12.5,
+    color: colors.text3,
+    fontWeight: '600',
+    lineHeight: 18,
+    paddingHorizontal: spacing.xs,
+    paddingTop: spacing.sm,
+  },
   toggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
