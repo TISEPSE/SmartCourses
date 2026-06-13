@@ -1,149 +1,231 @@
-# Connecter Smart Courses à ton IA (VPS)
+# Connecter ton VPS à Smart Courses — guide complet
 
-Smart Courses parle à n'importe quel serveur exposant l'**API compatible OpenAI**
-(`POST /v1/chat/completions`). C'est le cas d'**Ollama**, llama.cpp, vLLM,
-LM Studio, LocalAI… Le plus simple sur un VPS est **Ollama**. Ce guide le couvre.
+Ce guide te fait passer de **zéro** à **l'assistant IA fonctionnel dans l'app**.
+Suis les étapes dans l'ordre. Les choix techniques sont déjà faits pour toi :
+**Ollama** comme serveur d'inférence + **Caddy** pour le HTTPS. C'est la
+combinaison la plus simple et la plus fiable pour ce cas.
 
 ---
 
-## 1. Installer Ollama sur le VPS
+## Ce que l'app envoie exactement (le contrat)
 
-Connecte-toi en SSH à ton VPS, puis :
+Smart Courses est un client **OpenAI-compatible**. Pour CHAQUE message, il fait :
+
+```
+POST  {URL_DU_SERVEUR}/v1/chat/completions
+Headers:
+    Content-Type: application/json
+    Authorization: Bearer {clé}      ← seulement si tu remplis le champ Clé API
+Body:
+    {
+      "model": "llama3.1",
+      "messages": [ { "role": "...", "content": "..." }, ... ],
+      "temperature": 0.4,
+      "stream": false
+    }
+```
+
+Et il lit la réponse à cet emplacement précis :
+
+```
+réponse.choices[0].message.content
+```
+
+**Conséquences concrètes** — ton serveur doit :
+1. exposer la route **`/v1/chat/completions`** (pas `/api/chat`, pas `/generate`) ;
+2. accepter le mode **non-streaming** (`stream: false`) ;
+3. renvoyer le **format OpenAI** (`choices[].message.content`).
+
+Ollama coche les 3 cases nativement depuis la v0.1.24. C'est pour ça qu'on le choisit.
+
+---
+
+## Étape 1 — Choisir le modèle selon ton VPS
+
+| RAM / VRAM du VPS | Modèle à utiliser | Commande |
+|-------------------|-------------------|----------|
+| 4 Go              | `qwen2.5:3b`      | `ollama pull qwen2.5:3b` |
+| 8 Go (recommandé) | `llama3.1`        | `ollama pull llama3.1` |
+| 16 Go +           | `llama3.1:8b` ou `qwen2.5:14b` | `ollama pull qwen2.5:14b` |
+| GPU NVIDIA        | idem, ça accélère tout seul | — |
+
+> Le nom que tu choisis ici (`llama3.1`, `qwen2.5:3b`…) est **exactement** ce que
+> tu mettras dans le champ **Modèle** de l'app. Ils doivent être identiques.
+
+Pour la suite, on prend `llama3.1` comme exemple.
+
+---
+
+## Étape 2 — Installer Ollama
+
+En SSH sur le VPS :
 
 ```bash
 curl -fsSL https://ollama.com/install.sh | sh
+ollama pull llama3.1
 ```
 
-Télécharge un modèle (choisis selon la RAM/VRAM dispo) :
+Vérifie que le modèle répond localement :
 
 ```bash
-ollama pull llama3.1        # ~4.7 Go, bon équilibre (8 Go RAM mini)
-# alternatives :
-# ollama pull qwen2.5:3b    # léger, rapide (~2 Go)
-# ollama pull mistral       # ~4 Go
-```
-
-Teste en local sur le VPS :
-
-```bash
-ollama run llama3.1 "Donne-moi 3 idées de repas rapides"
+ollama run llama3.1 "dis bonjour"
 ```
 
 ---
 
-## 2. Exposer Ollama sur le réseau
+## Étape 3 — Rendre Ollama accessible depuis l'extérieur
 
-Par défaut Ollama n'écoute que sur `127.0.0.1`. Pour que ton téléphone puisse
-le joindre, fais-le écouter sur toutes les interfaces.
+Par défaut Ollama n'écoute que sur `127.0.0.1` → injoignable depuis le téléphone.
+On le fait écouter sur toutes les interfaces via une surcharge systemd :
 
 ```bash
 sudo systemctl edit ollama
 ```
 
-Ajoute ceci dans l'éditeur qui s'ouvre :
+Colle exactement ça dans l'éditeur :
 
 ```ini
 [Service]
 Environment="OLLAMA_HOST=0.0.0.0:11434"
 ```
 
-Puis redémarre :
+Sauvegarde, puis applique :
 
 ```bash
+sudo systemctl daemon-reload
 sudo systemctl restart ollama
 ```
 
-Ouvre le port dans le pare-feu (UFW par exemple) :
+Vérifie qu'il écoute bien sur toutes les interfaces :
+
+```bash
+ss -tlnp | grep 11434
+# doit afficher 0.0.0.0:11434 (et pas 127.0.0.1:11434)
+```
+
+---
+
+## Étape 4 — Choisir : HTTP simple OU HTTPS sécurisé
+
+### Option A — Rapide (HTTP en clair, pour tester)
+
+Ouvre le port :
 
 ```bash
 sudo ufw allow 11434/tcp
 ```
 
-> ⚠️ **Important** : ouvrir 11434 sur Internet expose ton modèle à tout le monde.
-> Lis la section Sécurité plus bas.
+Dans l'app (onglet **IA** → ou **Profil → Paramètres → Assistant IA**) :
 
----
+| Champ            | Valeur                          |
+|------------------|---------------------------------|
+| **URL du serveur** | `http://IP_DU_VPS:11434`      |
+| **Modèle**         | `llama3.1`                    |
+| **Clé API**        | *(vide)*                      |
 
-## 3. Configurer l'app
+> L'app autorise déjà le HTTP en clair (config réseau Android intégrée).
+> ⚠️ N'importe qui connaissant ton IP peut utiliser ton modèle. OK pour tester,
+> pas pour laisser en permanence. Passe à l'option B ensuite.
 
-Dans Smart Courses → onglet **IA** (ou **Profil → Paramètres → Assistant IA**) :
+### Option B — Propre (HTTPS + clé secrète, recommandé)
 
-| Champ            | Valeur                                            |
-|------------------|---------------------------------------------------|
-| **URL du serveur** | `http://IP_DE_TON_VPS:11434`                    |
-| **Modèle**         | `llama3.1` (le nom exact du `ollama pull`)      |
-| **Clé API**        | vide (sauf si tu as mis un reverse proxy, voir + bas) |
+Pré-requis : un **nom de domaine** pointant vers ton VPS (ex: `ia.mondomaine.fr`).
 
-L'app appelle automatiquement `http://IP_DE_TON_VPS:11434/v1/chat/completions`.
-
-> L'app autorise le HTTP en clair pour ce cas auto-hébergé. Pour de la
-> production, préfère le HTTPS (section Sécurité).
-
----
-
-## 4. Utiliser l'assistant
-
-- **Générer une liste** : décris un besoin (« repas équilibrés pour 4, 3 jours »)
-  → l'IA renvoie une liste d'articles → bouton **Créer la liste**.
-- **Discussion** : questions cuisine/courses libres.
-
----
-
-## Sécurité (recommandé)
-
-Exposer Ollama nu sur Internet = n'importe qui peut consommer ton GPU. Deux options :
-
-### Option A — Restreindre par IP (rapide)
-
-Si ton téléphone a une IP fixe / tu es sur le même réseau, limite le pare-feu :
+Installe Caddy :
 
 ```bash
-sudo ufw delete allow 11434/tcp
-sudo ufw allow from TON_IP to any port 11434 proto tcp
+sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https curl
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
+sudo apt update && sudo apt install -y caddy
 ```
 
-### Option B — Reverse proxy HTTPS + clé (propre)
-
-Mets **Caddy** devant Ollama : HTTPS automatique + token d'authentification.
-
-`/etc/caddy/Caddyfile` :
+Édite `/etc/caddy/Caddyfile` (remplace le domaine et le token) :
 
 ```
 ia.mondomaine.fr {
-    @auth header Authorization "Bearer MON_TOKEN_SECRET"
-    handle @auth {
+    # exige le header Authorization avec ton token
+    @ok header Authorization "Bearer CHANGE_MOI_TOKEN_SECRET"
+    handle @ok {
         reverse_proxy 127.0.0.1:11434
     }
+    # sinon, refus
     respond 401
 }
 ```
 
+Applique et ferme le port brut (tout passe par Caddy en 443) :
+
 ```bash
 sudo systemctl reload caddy
-sudo ufw delete allow 11434/tcp   # ne plus exposer le port brut
+sudo ufw allow 443/tcp
+sudo ufw deny 11434/tcp
 ```
 
 Dans l'app :
-- **URL du serveur** : `https://ia.mondomaine.fr`
-- **Clé API** : `MON_TOKEN_SECRET`
+
+| Champ            | Valeur                          |
+|------------------|---------------------------------|
+| **URL du serveur** | `https://ia.mondomaine.fr`    |
+| **Modèle**         | `llama3.1`                    |
+| **Clé API**        | `CHANGE_MOI_TOKEN_SECRET`     |
 
 ---
 
-## Dépannage
+## Étape 5 — Tester avant d'ouvrir l'app
 
-| Symptôme | Cause probable | Solution |
-|----------|----------------|----------|
-| « Impossible de joindre le serveur » | port fermé / mauvaise IP / Ollama en 127.0.0.1 | Vérifier étape 2, tester `curl http://IP_VPS:11434/api/tags` depuis un autre poste |
-| « répondu 404 » | mauvais chemin / serveur non OpenAI | Vérifier que c'est bien Ollama ≥ 0.1.24 (route `/v1` dispo) |
-| « répondu 401 » | reverse proxy attend un token | Renseigner la **Clé API** dans l'app |
-| Réponse vide / pas au format | modèle trop petit pour le JSON | Utiliser `llama3.1` ou plus gros |
-| Lent | modèle lourd / pas de GPU | Prendre un modèle plus léger (`qwen2.5:3b`) |
+Lance **exactement la requête que l'app enverra**, depuis ton PC (pas le VPS) :
 
-Vérifier que l'API OpenAI répond, depuis le VPS :
+HTTP (option A) :
 
 ```bash
-curl http://localhost:11434/v1/chat/completions -d '{
-  "model": "llama3.1",
-  "messages": [{"role":"user","content":"dis bonjour"}]
-}'
+curl http://IP_DU_VPS:11434/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model":"llama3.1","stream":false,"messages":[{"role":"user","content":"dis bonjour"}]}'
+```
+
+HTTPS + token (option B) :
+
+```bash
+curl https://ia.mondomaine.fr/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer CHANGE_MOI_TOKEN_SECRET" \
+  -d '{"model":"llama3.1","stream":false,"messages":[{"role":"user","content":"dis bonjour"}]}'
+```
+
+✅ Réponse attendue : un JSON contenant `"choices":[{"message":{"content":"..."}}]`.
+Si tu vois ça, l'app marchera. Sinon, voir le tableau ci-dessous.
+
+---
+
+## Étape 6 — Utiliser l'assistant dans l'app
+
+- **Générer une liste** : tape un besoin (« repas équilibrés pour 4 personnes,
+  3 jours ») → l'IA renvoie des articles → bouton **Créer la liste**.
+- **Discussion** : questions cuisine / courses en texte libre.
+
+---
+
+## Dépannage (cause → solution exacte)
+
+| Message dans l'app | Cause | Solution |
+|--------------------|-------|----------|
+| « Impossible de joindre le serveur » | port fermé, mauvaise IP, ou Ollama encore sur 127.0.0.1 | refaire étape 3 (`ss -tlnp \| grep 11434` doit montrer `0.0.0.0`), vérifier `ufw status` |
+| « répondu 404 » | la route `/v1/chat/completions` n'existe pas | Ollama trop vieux → `curl -fsSL https://ollama.com/install.sh \| sh` pour mettre à jour |
+| « répondu 401 » | Caddy attend le token | remplir le champ **Clé API** avec le token exact du Caddyfile |
+| « répondu 500 » + nom de modèle | le modèle n'est pas téléchargé | `ollama pull <le-nom-exact-mis-dans-l-app>` |
+| « réponse vide » ou « pas au format » | modèle trop petit pour suivre le JSON | utiliser `llama3.1` (pas un modèle < 3B) |
+| très lent | modèle lourd sans GPU | prendre `qwen2.5:3b` |
+| marche en HTTP, pas en HTTPS | DNS pas encore propagé / port 443 fermé | `sudo ufw allow 443/tcp`, attendre la propagation du domaine |
+
+Voir les modèles installés sur le VPS :
+
+```bash
+ollama list
+```
+
+Suivre les logs Ollama en direct :
+
+```bash
+journalctl -u ollama -f
 ```
