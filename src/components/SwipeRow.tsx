@@ -3,7 +3,6 @@ import {
   Animated,
   Pressable,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
   ViewStyle,
@@ -33,7 +32,7 @@ export interface SwipeRowHandle {
   close: () => void;
 }
 
-const ACTION_WIDTH = 96;
+const ACTION_WIDTH = 56;
 const ACTION_GAP = 8;
 
 /**
@@ -95,12 +94,12 @@ export const SwipeRow = forwardRef<SwipeRowHandle, SwipeRowProps>(function Swipe
         {actions.map(a => (
           <TouchableOpacity
             key={a.label}
+            accessibilityLabel={a.label}
             style={[styles.actionBtn, {backgroundColor: a.color}]}
             // Pas de settle(false) : la rangée reste ouverte pendant que
             // le modal/l'alerte s'affiche, rien ne bouge derrière
             onPress={a.onPress}>
             <Icon name={a.icon} size={22} color={colors.text} />
-            <Text style={styles.actionLabel}>{a.label}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -133,14 +132,6 @@ const styles = StyleSheet.create({
     marginLeft: ACTION_GAP,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
     borderRadius: radius.lg,
-    paddingHorizontal: 10,
-  },
-  actionLabel: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: colors.text,
-    letterSpacing: 0.3,
   },
 });
