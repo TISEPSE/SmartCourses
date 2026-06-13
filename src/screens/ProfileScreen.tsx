@@ -1,15 +1,5 @@
-import React, {useEffect, useRef, useState} from 'react';
-import {
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import React, {useEffect, useState} from 'react';
+import {ScrollView, StyleSheet, Text, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
@@ -17,7 +7,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import {RootStackParamList, GroceryList} from '../types';
 import {getLists} from '../storage';
-import {colors, spacing, radius} from '../theme';
+import {colors, spacing} from '../theme';
 import {AppBar, Card, Row, SectionLabel, Divider} from '../components';
 import {useSettings} from '../context/SettingsContext';
 
@@ -26,11 +16,8 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
-  const {settings, setSetting, accent, onAccent, haptic} = useSettings();
+  const {settings, accent, onAccent} = useSettings();
   const [lists, setLists] = useState<GroceryList[]>([]);
-  const [nameModalVisible, setNameModalVisible] = useState(false);
-  const [nameInput, setNameInput] = useState('');
-  const nameInputRef = useRef<TextInput>(null);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', async () => {
@@ -52,21 +39,6 @@ export default function ProfileScreen() {
         .toUpperCase()
     : 'SC';
 
-  const openNameModal = () => {
-    setNameInput(settings.userName);
-    setNameModalVisible(true);
-  };
-
-  const saveName = () => {
-    setSetting('userName', nameInput.trim());
-    setNameModalVisible(false);
-    haptic();
-  };
-
-  const focusNameInput = () => {
-    setTimeout(() => nameInputRef.current?.focus(), 100);
-  };
-
   return (
     <View style={[styles.container, {paddingTop: insets.top}]}>
       <AppBar title="Profil" />
@@ -75,7 +47,9 @@ export default function ProfileScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}>
         {/* En-tête profil */}
-        <Card style={styles.profileCard} onPress={openNameModal}>
+        <Card
+          style={styles.profileCard}
+          onPress={() => navigation.navigate('EditProfile')}>
           <View style={[styles.avatar, {backgroundColor: accent}]}>
             <Text style={[styles.avatarText, {color: onAccent}]}>{initials}</Text>
           </View>
@@ -127,58 +101,10 @@ export default function ProfileScreen() {
             subtitle="Courses terminées"
             onPress={() => navigation.navigate('History')}
           />
-          <Divider />
-          <Row
-            icon="tune"
-            title="Préférences"
-            subtitle="Régime, budget"
-            onPress={() => navigation.navigate('Preferences')}
-          />
         </Card>
 
         <View style={styles.bottomSpace} />
       </ScrollView>
-
-      {/* Modal prénom */}
-      <Modal
-        visible={nameModalVisible}
-        transparent
-        animationType="fade"
-        statusBarTranslucent
-        onShow={focusNameInput}
-        onRequestClose={() => setNameModalVisible(false)}>
-        <KeyboardAvoidingView
-          style={styles.modalOverlay}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <View style={styles.modalBox}>
-            <Text style={styles.modalTitle}>Ton prénom</Text>
-            <TextInput
-              ref={nameInputRef}
-              style={styles.nameInput}
-              placeholder="Prénom"
-              placeholderTextColor={colors.text3}
-              value={nameInput}
-              onChangeText={setNameInput}
-              onSubmitEditing={saveName}
-              returnKeyType="done"
-            />
-            <View style={styles.modalBtns}>
-              <TouchableOpacity
-                style={styles.modalBtnSecondary}
-                onPress={() => setNameModalVisible(false)}>
-                <Text style={styles.modalBtnSecondaryText}>Annuler</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalBtnPrimary, {backgroundColor: accent}]}
-                onPress={saveName}>
-                <Text style={[styles.modalBtnPrimaryText, {color: onAccent}]}>
-                  Enregistrer
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
     </View>
   );
 }
@@ -225,52 +151,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   bottomSpace: {height: 32},
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    paddingBottom: 16,
-  },
-  modalBox: {
-    width: 320,
-    backgroundColor: colors.card,
-    borderRadius: 20,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  modalTitle: {fontSize: 19, fontWeight: '800', color: colors.text, textAlign: 'center'},
-  nameInput: {
-    backgroundColor: colors.bg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: 13,
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    marginTop: 16,
-    marginBottom: 20,
-  },
-  modalBtns: {flexDirection: 'row', gap: 10},
-  modalBtnSecondary: {
-    flex: 1,
-    height: 44,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalBtnSecondaryText: {fontSize: 15, fontWeight: '700', color: colors.text2},
-  modalBtnPrimary: {
-    flex: 1,
-    height: 44,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalBtnPrimaryText: {fontSize: 15, fontWeight: '700'},
 });

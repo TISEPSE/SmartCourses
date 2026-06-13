@@ -1,4 +1,4 @@
-import React, {useCallback, useRef} from 'react';
+import React, {forwardRef, useCallback, useImperativeHandle, useRef} from 'react';
 import {
   Animated,
   Pressable,
@@ -29,7 +29,11 @@ interface SwipeRowProps {
   cardStyle?: ViewStyle;
 }
 
-const ACTION_WIDTH = 84;
+export interface SwipeRowHandle {
+  close: () => void;
+}
+
+const ACTION_WIDTH = 96;
 const ACTION_GAP = 8;
 
 /**
@@ -37,15 +41,12 @@ const ACTION_GAP = 8;
  * Basée sur l'API Gesture de gesture-handler : les gestes se négocient
  * nativement avec le scroll et le geste retour du stack — contrairement
  * à PanResponder qui se faisait annuler en plein mouvement.
+ * Expose close() via ref pour refermer après une action (ex: renommage).
  */
-export function SwipeRow({
-  actions,
-  children,
-  enabled = true,
-  onPress,
-  style,
-  cardStyle,
-}: SwipeRowProps) {
+export const SwipeRow = forwardRef<SwipeRowHandle, SwipeRowProps>(function SwipeRow(
+  {actions, children, enabled = true, onPress, style, cardStyle},
+  ref,
+) {
   const totalWidth = (ACTION_WIDTH + ACTION_GAP) * actions.length;
   const translateX = useRef(new Animated.Value(0)).current;
   const isOpen = useRef(false);
@@ -61,6 +62,8 @@ export function SwipeRow({
     },
     [translateX, totalWidth],
   );
+
+  useImperativeHandle(ref, () => ({close: () => settle(false)}), [settle]);
 
   const pan = Gesture.Pan()
     .enabled(enabled)
@@ -111,7 +114,7 @@ export function SwipeRow({
       </GestureDetector>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   wrapper: {

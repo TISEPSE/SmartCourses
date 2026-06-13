@@ -22,6 +22,7 @@ import RecipeDetailScreen from '../screens/RecipeDetailScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import HistoryScreen from '../screens/HistoryScreen';
 import PreferencesScreen from '../screens/PreferencesScreen';
+import EditProfileScreen from '../screens/EditProfileScreen';
 
 const Stack = createStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -118,6 +119,7 @@ export default function Navigation() {
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="History" component={HistoryScreen} />
       <Stack.Screen name="Preferences" component={PreferencesScreen} />
+      <Stack.Screen name="EditProfile" component={EditProfileScreen} />
     </Stack.Navigator>
   );
 }

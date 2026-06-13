@@ -37,6 +37,7 @@ export type RootStackParamList = {
   Settings: undefined;
   Preferences: undefined;
   History: undefined;
+  EditProfile: undefined;
 };
 
 export type TabParamList = {

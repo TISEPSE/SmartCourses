@@ -21,7 +21,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {RootStackParamList, GroceryList, GroceryItem} from '../types';
 import {getLists, saveLists} from '../storage';
 import {colors, spacing, radius} from '../theme';
-import {Progress, SwipeRow} from '../components';
+import {Progress, SwipeRow, SwipeRowHandle} from '../components';
 import {useSettings} from '../context/SettingsContext';
 
 type Route = RouteProp<RootStackParamList, 'Shopping'>;
@@ -48,6 +48,7 @@ export default function ShoppingScreen() {
   const finishAnim = useRef(new Animated.Value(0)).current;
   const costInputRef = useRef<TextInput>(null);
   const renameInputRef = useRef<TextInput>(null);
+  const swipeRefs = useRef<Record<string, SwipeRowHandle | null>>({});
 
   useEffect(() => {
     (async () => {
@@ -160,6 +161,7 @@ export default function ShoppingScreen() {
         i.id === renameTarget.id ? {...i, name} : i,
       ),
     });
+    swipeRefs.current[renameTarget.id]?.close();
     setRenameTarget(null);
   };
 
@@ -285,6 +287,9 @@ export default function ShoppingScreen() {
           {visible.map(item => (
             <SwipeRow
               key={item.id}
+              ref={r => {
+                swipeRefs.current[item.id] = r;
+              }}
               style={styles.itemSwipe}
               enabled={!isCompleted}
               onPress={isCompleted ? undefined : () => toggle(item.id)}

@@ -426,5 +426,5 @@ const styles = StyleSheet.create({
 });
 
 export {SwipeRow} from './SwipeRow';
-export type {SwipeAction} from './SwipeRow';
+export type {SwipeAction, SwipeRowHandle} from './SwipeRow';
 export {AppSwitch} from './AppSwitch';
