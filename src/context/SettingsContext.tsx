@@ -7,6 +7,7 @@ import React, {
 } from 'react';
 import {Vibration} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {AI_DEFAULTS} from '../config/defaults';
 
 export type ThemeName = 'blanc' | 'bleu' | 'vert' | 'violet' | 'ambre';
 
@@ -47,9 +48,9 @@ const DEFAULTS: AppSettings = {
   sortCheckedBottom: false,
   confirmDelete: true,
   userName: '',
-  aiBaseUrl: '',
-  aiApiKey: '',
-  aiModel: 'qwen2.5:3b',
+  aiBaseUrl: AI_DEFAULTS.baseUrl,
+  aiApiKey: AI_DEFAULTS.apiKey,
+  aiModel: AI_DEFAULTS.model,
 };
 
 const STORAGE_KEY = '@sc_settings';

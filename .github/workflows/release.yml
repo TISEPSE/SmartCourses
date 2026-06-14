@@ -40,6 +40,12 @@ jobs:
       - name: Install JS dependencies
         run: npm ci
 
+      - name: Inject AI default token
+        env:
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+        run: |
+          printf "export const DEFAULT_AI_API_KEY = '%s';\n" "$AI_API_KEY" > src/config/secrets.ts
+
       - name: Setup Android SDK components
         run: |
           echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
