@@ -1,4 +1,4 @@
-import React, {useRef, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -13,6 +13,7 @@ import {
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import {RootStackParamList, GroceryList} from '../types';
@@ -46,6 +47,8 @@ const SUGGESTIONS = [
   'Idée de dîner rapide avec du poulet ?',
 ];
 
+const CHAT_KEY = '@sc_ai_chat';
+
 export default function AiScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
@@ -56,8 +59,47 @@ export default function AiScreen() {
   const [bubbles, setBubbles] = useState<Bubble[]>([]);
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
+  // Évite d'écraser la conversation stockée avant qu'elle soit chargée.
+  const chatLoaded = useRef(false);
 
   const configured = settings.aiBaseUrl.trim().length > 0;
+
+  // Charge la conversation persistée au montage (en retirant une éventuelle
+  // bulle assistant incomplète si l'app a été coupée pendant une réponse).
+  useEffect(() => {
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem(CHAT_KEY);
+        if (raw) {
+          const saved: Bubble[] = JSON.parse(raw);
+          const clean = saved.filter(
+            b => b.role === 'user' || b.text || b.list,
+          );
+          if (clean.length) {
+            setBubbles(clean);
+            setTimeout(() => scrollToEnd(false), 80);
+          }
+        }
+      } catch {
+        // conversation illisible : on repart à vide
+      } finally {
+        chatLoaded.current = true;
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Persiste la conversation à chaque changement (une fois le chargement fait).
+  useEffect(() => {
+    if (!chatLoaded.current) return;
+    AsyncStorage.setItem(CHAT_KEY, JSON.stringify(bubbles)).catch(() => {});
+  }, [bubbles]);
+
+  const clearChat = () => {
+    haptic();
+    setBubbles([]);
+    AsyncStorage.removeItem(CHAT_KEY).catch(() => {});
+  };
 
   const scrollToEnd = (animated = true) => {
     scrollRef.current?.scrollToEnd({animated});
@@ -191,7 +233,14 @@ export default function AiScreen() {
     <KeyboardAvoidingView
       style={[styles.container, {paddingTop: insets.top}]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <AppBar title="Assistant IA" />
+      <AppBar
+        title="Assistant IA"
+        actions={
+          bubbles.length > 0
+            ? [{icon: 'broom', onPress: clearChat}]
+            : undefined
+        }
+      />
 
       <ScrollView
         ref={scrollRef}
