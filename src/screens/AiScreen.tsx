@@ -34,6 +34,10 @@ interface Bubble {
   role: 'user' | 'assistant';
   text?: string;
   list?: GeneratedList;
+  /** Bulle d'erreur : affiche un bouton « Réessayer ». */
+  error?: boolean;
+  /** Prompt à rejouer si on réessaie. */
+  retryPrompt?: string;
 }
 
 const SUGGESTIONS = [
@@ -67,22 +71,9 @@ export default function AiScreen() {
     });
   };
 
-  const send = async () => {
-    const prompt = input.trim();
-    if (!prompt || loading) return;
-    haptic();
-    setInput('');
-
-    // Historique conversationnel (on ignore les bulles "liste")
-    const history: ChatMessage[] = bubbles
-      .filter(b => b.text)
-      .map(b => ({role: b.role, content: b.text as string}));
-
-    setBubbles(prev => [
-      ...prev,
-      {role: 'user', text: prompt},
-      {role: 'assistant'}, // bulle vide → spinner pendant la réponse
-    ]);
+  // Lance la génération pour un prompt donné (bulle assistant déjà ajoutée en
+  // dernière position). `history` = messages conversationnels précédents.
+  const generate = async (prompt: string, history: ChatMessage[]) => {
     setLoading(true);
     setTimeout(() => scrollToEnd(), 60);
 
@@ -111,11 +102,48 @@ export default function AiScreen() {
       }
     } catch (e) {
       const msg = e instanceof AiError ? e.message : 'Une erreur est survenue.';
-      setLastBubble({role: 'assistant', text: `⚠️ ${msg}`});
+      setLastBubble({role: 'assistant', text: `⚠️ ${msg}`, error: true, retryPrompt: prompt});
     } finally {
       setLoading(false);
       setTimeout(() => scrollToEnd(), 60);
     }
+  };
+
+  const send = () => {
+    const prompt = input.trim();
+    if (!prompt || loading) return;
+    haptic();
+    setInput('');
+
+    // Historique conversationnel (on ignore les bulles "liste" et "erreur")
+    const history: ChatMessage[] = bubbles
+      .filter(b => b.text && !b.error)
+      .map(b => ({role: b.role, content: b.text as string}));
+
+    setBubbles(prev => [
+      ...prev,
+      {role: 'user', text: prompt},
+      {role: 'assistant'}, // bulle vide → spinner pendant la réponse
+    ]);
+    generate(prompt, history);
+  };
+
+  const retry = (prompt: string) => {
+    if (loading) return;
+    haptic();
+    // Historique = tout sauf la bulle d'erreur (dernière) et la bulle user juste
+    // avant (on la garde affichée, le prompt est renvoyé tel quel).
+    const history: ChatMessage[] = bubbles
+      .slice(0, -2)
+      .filter(b => b.text && !b.error)
+      .map(b => ({role: b.role, content: b.text as string}));
+    // Remplace la bulle d'erreur par un spinner et relance.
+    setBubbles(prev => {
+      const next = [...prev];
+      next[next.length - 1] = {role: 'assistant'};
+      return next;
+    });
+    generate(prompt, history);
   };
 
   const createList = async (gen: GeneratedList) => {
@@ -224,6 +252,15 @@ export default function AiScreen() {
               ) : (
                 <Text style={styles.bubbleText}>{b.text}</Text>
               )}
+              {b.error && b.retryPrompt && (
+                <TouchableOpacity
+                  style={styles.retryBtn}
+                  onPress={() => retry(b.retryPrompt as string)}
+                  disabled={loading}>
+                  <Icon name="refresh" size={15} color={accent} />
+                  <Text style={[styles.retryText, {color: accent}]}>Réessayer</Text>
+                </TouchableOpacity>
+              )}
             </View>
           );
         })}
@@ -323,6 +360,15 @@ const makeStyles = (colors: Palette) =>
     borderColor: colors.border,
   },
   bubbleText: {fontSize: 15, fontWeight: '600', color: colors.text, lineHeight: 21},
+  retryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    alignSelf: 'flex-start',
+    marginTop: 8,
+    paddingVertical: 4,
+  },
+  retryText: {fontSize: 13.5, fontWeight: '800'},
   listCard: {
     backgroundColor: colors.card,
     borderRadius: radius.lg,
