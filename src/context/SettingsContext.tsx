@@ -45,6 +45,9 @@ const DEFAULTS: AppSettings = {
 };
 
 const STORAGE_KEY = '@sc_settings';
+const MIGRATION_KEY = '@sc_migration';
+// Incrémenter à chaque migration ponctuelle des réglages persistés.
+const CURRENT_MIGRATION = 2;
 
 interface SettingsContextValue {
   settings: AppSettings;
@@ -95,7 +98,28 @@ export function SettingsProvider({children}: {children: React.ReactNode}) {
             };
             stored.theme = legacy[stored.theme] ?? 'nuit';
           }
-          setSettings({...DEFAULTS, ...stored});
+
+          // Migrations ponctuelles des réglages déjà persistés.
+          const migRaw = await AsyncStorage.getItem(MIGRATION_KEY);
+          const mig = migRaw ? parseInt(migRaw, 10) : 1;
+          if (mig < 2) {
+            // L'ancien modèle par défaut (jamais choisi explicitement) bascule
+            // vers le nouveau modèle intégré.
+            if (stored.aiModel === 'qwen2.5:3b') {
+              stored.aiModel = AI_DEFAULTS.model;
+            }
+          }
+
+          const merged = {...DEFAULTS, ...stored};
+          setSettings(merged);
+
+          if (mig < CURRENT_MIGRATION) {
+            AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+            AsyncStorage.setItem(MIGRATION_KEY, String(CURRENT_MIGRATION));
+          }
+        } else {
+          // Install neuve : pas de migration à rejouer plus tard.
+          AsyncStorage.setItem(MIGRATION_KEY, String(CURRENT_MIGRATION));
         }
       } finally {
         setHydrated(true);

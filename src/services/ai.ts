@@ -43,7 +43,7 @@ async function postChat(
           : {}),
       },
       body: JSON.stringify({
-        model: settings.aiModel || 'qwen2.5:3b',
+        model: settings.aiModel || 'gemma3:4b',
         messages,
         temperature,
         stream: false,
@@ -199,7 +199,7 @@ export function chatStream(
 
     xhr.send(
       JSON.stringify({
-        model: settings.aiModel || 'qwen2.5:3b',
+        model: settings.aiModel || 'gemma3:4b',
         messages: [CHAT_SYSTEM, ...messages],
         temperature: 0.4,
         stream: true,

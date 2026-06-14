@@ -177,7 +177,7 @@ export default function SettingsScreen() {
           <FieldRow
             label="Modèle"
             value={settings.aiModel}
-            placeholder="qwen2.5:3b"
+            placeholder="gemma3:4b"
             onChange={v => setSetting('aiModel', v)}
           />
           <Divider />

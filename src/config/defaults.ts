@@ -7,6 +7,6 @@ import {DEFAULT_AI_API_KEY} from './secrets';
  */
 export const AI_DEFAULTS = {
   baseUrl: 'https://example.com',
-  model: 'qwen2.5:3b',
+  model: 'gemma3:4b',
   apiKey: DEFAULT_AI_API_KEY,
 };
