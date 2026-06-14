@@ -5,18 +5,16 @@ import {
   Text,
   ScrollView,
   TextInput,
-  TouchableOpacity,
   StyleSheet,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import {RootStackParamList} from '../types';
 import {clearHistory, resetAllData} from '../storage';
-import {Palette, PALETTES, ThemeName, spacing, radius} from '../theme';
-import {AppBar, AppSwitch, Card, Divider, SectionLabel, Row} from '../components';
+import {Palette, spacing, radius} from '../theme';
+import {AppBar, AppSwitch, Card, Divider, SectionLabel, Row, ThemePicker} from '../components';
 import {useSettings} from '../context/SettingsContext';
 
 interface FieldRowProps {
@@ -123,42 +121,7 @@ export default function SettingsScreen() {
         showsVerticalScrollIndicator={false}>
 
         <SectionLabel label="Thème de couleur" />
-        <Card style={styles.themeCard}>
-          <View style={styles.themeRow}>
-            {(Object.keys(PALETTES) as ThemeName[]).map(name => {
-              const t = PALETTES[name];
-              const selected = settings.theme === name;
-              return (
-                <TouchableOpacity
-                  key={name}
-                  style={styles.themeItem}
-                  activeOpacity={0.7}
-                  onPress={() => {
-                    haptic();
-                    setSetting('theme', name);
-                  }}>
-                  <View
-                    style={[
-                      styles.themeDot,
-                      {backgroundColor: t.accent},
-                      selected && styles.themeDotSelected,
-                    ]}>
-                    {selected && (
-                      <Icon name="check" size={18} color={t.onAccent} />
-                    )}
-                  </View>
-                  <Text
-                    style={[
-                      styles.themeLabel,
-                      selected && styles.themeLabelSelected,
-                    ]}>
-                    {t.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </Card>
+        <ThemePicker />
 
         <SectionLabel label="Application" />
         <Card>

@@ -1,5 +1,7 @@
-import React, {useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {
+  Animated,
+  Easing,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -15,7 +17,8 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import {RootStackParamList} from '../types';
-import {Palette, PALETTES, ThemeName, radius, spacing} from '../theme';
+import {Palette, radius, spacing} from '../theme';
+import {ThemePicker} from '../components';
 import {useSettings} from '../context/SettingsContext';
 import {AI_DEFAULTS} from '../config/defaults';
 
@@ -30,6 +33,21 @@ export default function OnboardingScreen() {
   const styles = makeStyles(colors);
 
   const [step, setStep] = useState(0);
+  const [dir, setDir] = useState(1); // 1 = avance, -1 = recule
+  const anim = useRef(new Animated.Value(1)).current;
+
+  // À chaque changement d'étape : le contenu repart de 0 (décalé + transparent)
+  // puis glisse/apparaît en douceur.
+  useEffect(() => {
+    anim.setValue(0);
+    Animated.timing(anim, {
+      toValue: 1,
+      duration: 320,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [step, anim]);
+
   const [firstName, setFirstName] = useState(settings.firstName);
   const [lastName, setLastName] = useState(settings.lastName);
   const [aiMode, setAiMode] = useState<'default' | 'custom'>('default');
@@ -46,6 +64,7 @@ export default function OnboardingScreen() {
   const next = () => {
     haptic();
     if (step < STEPS - 1) {
+      setDir(1);
       setStep(s => s + 1);
     } else {
       finish();
@@ -53,6 +72,7 @@ export default function OnboardingScreen() {
   };
   const back = () => {
     haptic();
+    setDir(-1);
     setStep(s => Math.max(0, s - 1));
   };
 
@@ -107,6 +127,18 @@ export default function OnboardingScreen() {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
+        <Animated.View
+          style={{
+            opacity: anim,
+            transform: [
+              {
+                translateX: anim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [dir * 48, 0],
+                }),
+              },
+            ],
+          }}>
         {step === 0 && (
           <View>
             <Text style={styles.title}>Bienvenue 👋</Text>
@@ -233,43 +265,10 @@ export default function OnboardingScreen() {
               Il s'applique à toute l'application. Tu pourras le changer plus tard.
             </Text>
 
-            {(Object.keys(PALETTES) as ThemeName[]).map(name => {
-              const p = PALETTES[name];
-              const on = settings.theme === name;
-              return (
-                <TouchableOpacity
-                  key={name}
-                  activeOpacity={0.85}
-                  style={[
-                    styles.themeCard,
-                    {backgroundColor: p.card, borderColor: on ? p.accent : p.border},
-                  ]}
-                  onPress={() => {
-                    haptic();
-                    setSetting('theme', name);
-                  }}>
-                  {/* Aperçu miniature de l'ambiance */}
-                  <View style={[styles.preview, {backgroundColor: p.bg, borderColor: p.border}]}>
-                    <View style={[styles.previewDot, {backgroundColor: p.accent}]} />
-                    <View style={[styles.previewBar, {backgroundColor: p.cardHi, width: 34}]} />
-                    <View style={[styles.previewBar, {backgroundColor: p.cardHi, width: 22}]} />
-                  </View>
-                  <Text style={[styles.themeName, {color: p.text}]}>{p.label}</Text>
-                  <View
-                    style={[
-                      styles.check,
-                      {
-                        borderColor: on ? p.accent : p.border,
-                        backgroundColor: on ? p.accent : 'transparent',
-                      },
-                    ]}>
-                    {on && <Icon name="check" size={16} color={p.onAccent} />}
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
+            <ThemePicker />
           </View>
         )}
+        </Animated.View>
       </ScrollView>
 
       {/* Boutons */}
@@ -367,35 +366,6 @@ const makeStyles = (colors: Palette) =>
       lineHeight: 18,
     },
     customBox: {marginTop: spacing.sm},
-    themeCard: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.lg,
-      borderWidth: 2,
-      borderRadius: radius.lg,
-      padding: spacing.md,
-      marginBottom: spacing.md,
-    },
-    preview: {
-      width: 76,
-      height: 58,
-      borderRadius: radius.md,
-      borderWidth: 1,
-      paddingHorizontal: 10,
-      justifyContent: 'center',
-      gap: 5,
-    },
-    previewDot: {width: 16, height: 16, borderRadius: 8, marginBottom: 3},
-    previewBar: {height: 5, borderRadius: 3},
-    themeName: {flex: 1, fontSize: 17, fontWeight: '800'},
-    check: {
-      width: 26,
-      height: 26,
-      borderRadius: 13,
-      borderWidth: 2,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
     footer: {
       flexDirection: 'row',
       alignItems: 'center',

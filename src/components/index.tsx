@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import {Palette, radius, spacing} from '../theme';
+import {Palette, PALETTES, ThemeName, radius, spacing} from '../theme';
 import {useSettings} from '../context/SettingsContext';
 
 // ── AppBar ──────────────────────────────────────────────
@@ -282,9 +282,84 @@ export function Fab({icon, label, onPress}: FabProps) {
   );
 }
 
+// ── ThemePicker ─────────────────────────────────────────
+// Sélecteur de thème partagé (onboarding + paramètres) : grandes cartes avec
+// aperçu de l'ambiance et coche, pour un rendu identique partout.
+export function ThemePicker() {
+  const {settings, setSetting, colors, haptic} = useSettings();
+  const styles = makeStyles(colors);
+  return (
+    <View>
+      {(Object.keys(PALETTES) as ThemeName[]).map(name => {
+        const p = PALETTES[name];
+        const on = settings.theme === name;
+        return (
+          <TouchableOpacity
+            key={name}
+            activeOpacity={0.85}
+            style={[
+              styles.themeCard,
+              {backgroundColor: p.card, borderColor: on ? p.accent : p.border},
+            ]}
+            onPress={() => {
+              haptic();
+              setSetting('theme', name);
+            }}>
+            <View style={[styles.themePreview, {backgroundColor: p.bg, borderColor: p.border}]}>
+              <View style={[styles.themePreviewDot, {backgroundColor: p.accent}]} />
+              <View style={[styles.themePreviewBar, {backgroundColor: p.cardHi, width: 34}]} />
+              <View style={[styles.themePreviewBar, {backgroundColor: p.cardHi, width: 22}]} />
+            </View>
+            <Text style={[styles.themeName, {color: p.text}]}>{p.label}</Text>
+            <View
+              style={[
+                styles.themeCheck,
+                {
+                  borderColor: on ? p.accent : p.border,
+                  backgroundColor: on ? p.accent : 'transparent',
+                },
+              ]}>
+              {on && <Icon name="check" size={16} color={p.onAccent} />}
+            </View>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+}
+
 // ── Styles ───────────────────────────────────────────────
 const makeStyles = (colors: Palette) =>
   StyleSheet.create({
+    themeCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.lg,
+      borderWidth: 2,
+      borderRadius: radius.lg,
+      padding: spacing.md,
+      marginBottom: spacing.md,
+    },
+    themePreview: {
+      width: 76,
+      height: 58,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      paddingHorizontal: 10,
+      justifyContent: 'center',
+      gap: 5,
+    },
+    themePreviewDot: {width: 16, height: 16, borderRadius: 8, marginBottom: 3},
+    themePreviewBar: {height: 5, borderRadius: 3},
+    themeName: {flex: 1, fontSize: 17, fontWeight: '800'},
+    themeCheck: {
+      width: 26,
+      height: 26,
+      borderRadius: 13,
+      borderWidth: 2,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
     appbar: {
       height: 56,
       flexDirection: 'row',
