@@ -40,11 +40,16 @@ jobs:
       - name: Install JS dependencies
         run: npm ci
 
-      - name: Inject AI default token
+      - name: Inject AI default token (si secret défini)
         env:
           AI_API_KEY: ${{ secrets.AI_API_KEY }}
         run: |
-          printf "export const DEFAULT_AI_API_KEY = '%s';\n" "$AI_API_KEY" > src/config/secrets.ts
+          if [ -n "$AI_API_KEY" ]; then
+            printf "export const DEFAULT_AI_API_KEY = '%s';\n" "$AI_API_KEY" > src/config/secrets.ts
+            echo "Token injecté depuis le secret GitHub."
+          else
+            echo "Pas de secret AI_API_KEY : conservation du token du dépôt."
+          fi
 
       - name: Setup Android SDK components
         run: |
