@@ -20,10 +20,15 @@ import {getLists, saveLists} from '../storage';
 import {colors, spacing, radius} from '../theme';
 import {AppBar} from '../components';
 import {useSettings} from '../context/SettingsContext';
-import {AiError, chatStream, generateGroceryList, GeneratedList, ChatMessage} from '../services/ai';
+import {
+  AiError,
+  chatStream,
+  extractGroceryList,
+  GeneratedList,
+  ChatMessage,
+} from '../services/ai';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-type Mode = 'list' | 'chat';
 
 interface Bubble {
   role: 'user' | 'assistant';
@@ -33,8 +38,8 @@ interface Bubble {
 
 const SUGGESTIONS = [
   'Repas équilibrés pour 4 personnes, 3 jours',
-  'Un barbecue pour 6 amis',
-  'Petit-déjeuners sains pour la semaine',
+  'Une liste pour un barbecue à 6',
+  'Idée de dîner rapide avec du poulet ?',
 ];
 
 export default function AiScreen() {
@@ -42,7 +47,6 @@ export default function AiScreen() {
   const navigation = useNavigation<Nav>();
   const {settings, accent, onAccent, accentSoft, haptic} = useSettings();
 
-  const [mode, setMode] = useState<Mode>('list');
   const [input, setInput] = useState('');
   const [bubbles, setBubbles] = useState<Bubble[]>([]);
   const [loading, setLoading] = useState(false);
@@ -54,51 +58,59 @@ export default function AiScreen() {
     scrollRef.current?.scrollToEnd({animated});
   };
 
+  const setLastBubble = (b: Bubble) => {
+    setBubbles(prev => {
+      const next = [...prev];
+      next[next.length - 1] = b;
+      return next;
+    });
+  };
+
   const send = async () => {
     const prompt = input.trim();
     if (!prompt || loading) return;
     haptic();
     setInput('');
-    setBubbles(prev => [...prev, {role: 'user', text: prompt}]);
+
+    // Historique conversationnel (on ignore les bulles "liste")
+    const history: ChatMessage[] = bubbles
+      .filter(b => b.text)
+      .map(b => ({role: b.role, content: b.text as string}));
+
+    setBubbles(prev => [
+      ...prev,
+      {role: 'user', text: prompt},
+      {role: 'assistant'}, // bulle vide → spinner pendant la réponse
+    ]);
     setLoading(true);
     setTimeout(() => scrollToEnd(), 60);
 
     try {
-      if (mode === 'list') {
-        const list = await generateGroceryList(settings, prompt);
-        setBubbles(prev => [...prev, {role: 'assistant', list}]);
+      const {promise} = chatStream(
+        settings,
+        [...history, {role: 'user', content: prompt}],
+        fullText => {
+          // Si la réponse commence par du JSON, c'est une liste : on garde le
+          // spinner (pas de JSON brut à l'écran), la carte s'affiche à la fin.
+          const t = fullText.trimStart();
+          if (t.startsWith('{') || t.startsWith('```')) return;
+          setLastBubble({role: 'assistant', text: fullText});
+          scrollToEnd(false);
+        },
+      );
+      const full = await promise;
+      const list = extractGroceryList(full);
+      if (list) {
+        setLastBubble({role: 'assistant', list});
       } else {
-        const history: ChatMessage[] = bubbles
-          .filter(b => b.text)
-          .map(b => ({role: b.role, content: b.text as string}));
-        // Bulle assistant vide, remplie en streaming
-        setBubbles(prev => [...prev, {role: 'assistant', text: ''}]);
-        const {promise} = chatStream(
-          settings,
-          [...history, {role: 'user', content: prompt}],
-          fullText => {
-            setBubbles(prev => {
-              const next = [...prev];
-              next[next.length - 1] = {role: 'assistant', text: fullText};
-              return next;
-            });
-            scrollToEnd(false);
-          },
-        );
-        await promise;
+        setLastBubble({
+          role: 'assistant',
+          text: full.trim() || 'Désolé, peux-tu reformuler ?',
+        });
       }
     } catch (e) {
       const msg = e instanceof AiError ? e.message : 'Une erreur est survenue.';
-      setBubbles(prev => {
-        // Remplace la bulle de streaming vide par l'erreur si besoin
-        const next = [...prev];
-        const last = next[next.length - 1];
-        if (last && last.role === 'assistant' && !last.text && !last.list) {
-          next[next.length - 1] = {role: 'assistant', text: `⚠️ ${msg}`};
-          return next;
-        }
-        return [...next, {role: 'assistant', text: `⚠️ ${msg}`}];
-      });
+      setLastBubble({role: 'assistant', text: `⚠️ ${msg}`});
     } finally {
       setLoading(false);
       setTimeout(() => scrollToEnd(), 60);
@@ -152,31 +164,6 @@ export default function AiScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <AppBar title="Assistant IA" />
 
-      {/* Sélecteur de mode */}
-      <View style={styles.modeRow}>
-        {(['list', 'chat'] as Mode[]).map(m => {
-          const on = mode === m;
-          return (
-            <TouchableOpacity
-              key={m}
-              style={[
-                styles.modeChip,
-                on && {backgroundColor: accent, borderColor: accent},
-              ]}
-              onPress={() => setMode(m)}>
-              <Icon
-                name={m === 'list' ? 'format-list-checks' : 'chat-outline'}
-                size={16}
-                color={on ? onAccent : colors.text2}
-              />
-              <Text style={[styles.modeChipText, {color: on ? onAccent : colors.text2}]}>
-                {m === 'list' ? 'Générer une liste' : 'Discussion'}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
       <ScrollView
         ref={scrollRef}
         style={styles.scroll}
@@ -185,20 +172,17 @@ export default function AiScreen() {
         {bubbles.length === 0 && (
           <View style={styles.suggestions}>
             <Text style={styles.suggestTitle}>
-              {mode === 'list'
-                ? 'Décris ce dont tu as besoin'
-                : 'Pose une question cuisine ou courses'}
+              Demande une liste ou pose une question
             </Text>
-            {mode === 'list' &&
-              SUGGESTIONS.map(s => (
-                <TouchableOpacity
-                  key={s}
-                  style={styles.suggestChip}
-                  onPress={() => setInput(s)}>
-                  <Icon name="lightbulb-outline" size={16} color={colors.text2} />
-                  <Text style={styles.suggestChipText}>{s}</Text>
-                </TouchableOpacity>
-              ))}
+            {SUGGESTIONS.map(s => (
+              <TouchableOpacity
+                key={s}
+                style={styles.suggestChip}
+                onPress={() => setInput(s)}>
+                <Icon name="lightbulb-outline" size={16} color={colors.text2} />
+                <Text style={styles.suggestChipText}>{s}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
         )}
 
@@ -242,26 +226,20 @@ export default function AiScreen() {
             </View>
           );
         })}
-
-        {/* En mode liste, pas de bulle streaming : indicateur dédié */}
-        {loading && mode === 'list' && (
-          <View style={[styles.bubble, styles.bubbleAi]}>
-            <ActivityIndicator size="small" color={colors.text2} />
-          </View>
-        )}
       </ScrollView>
 
-      {/* Saisie */}
+      {/* Saisie — sans cadre, juste le texte */}
       <View style={[styles.inputBar, {paddingBottom: insets.bottom + 8}]}>
         <TextInput
           style={styles.input}
-          placeholder={mode === 'list' ? 'Ex : pâtes pour 2 ce soir…' : 'Ton message…'}
+          placeholder="Demande ce que tu veux…"
           placeholderTextColor={colors.text3}
           value={input}
           onChangeText={setInput}
           onSubmitEditing={send}
           returnKeyType="send"
           editable={!loading}
+          multiline
         />
         <TouchableOpacity
           style={[
@@ -308,24 +286,6 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   cfgBtnText: {fontSize: 15, fontWeight: '800'},
-  modeRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-  },
-  modeChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  modeChipText: {fontSize: 13.5, fontWeight: '700'},
   scroll: {flex: 1},
   scrollContent: {padding: spacing.lg, gap: spacing.md},
   suggestions: {gap: spacing.sm, paddingTop: spacing.md},
@@ -390,9 +350,9 @@ const styles = StyleSheet.create({
   createBtnText: {fontSize: 15, fontWeight: '800'},
   inputBar: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     gap: spacing.sm,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
     backgroundColor: colors.bg,
     borderTopWidth: 1,
@@ -400,24 +360,17 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: 13,
-    fontSize: 15,
+    paddingVertical: 12,
+    fontSize: 16,
     fontWeight: '600',
     color: colors.text,
     maxHeight: 120,
   },
   sendBtn: {
-    width: 48,
-    height: 48,
+    width: 44,
+    height: 44,
     borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
   },
 });

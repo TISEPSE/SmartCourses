@@ -72,8 +72,39 @@ async function postChat(
 const CHAT_SYSTEM: ChatMessage = {
   role: 'system',
   content:
-    'Tu es un assistant de courses et de cuisine. Réponds en français, de façon concise et pratique.',
+    'Tu es un assistant de courses et de cuisine. Réponds en français, de façon concise et pratique. ' +
+    'Si l’utilisateur demande de créer/générer une liste de courses ou de planifier des repas, ' +
+    'réponds UNIQUEMENT avec un objet JSON valide, sans aucun texte ni balise autour, au format : ' +
+    '{"name":"nom court","items":["article 1","article 2"]} (articles concis, nom + quantité si utile, en français). ' +
+    'Pour toute autre demande (salutation, question, conseil), réponds normalement en texte clair, sans JSON.',
 };
+
+/**
+ * Tente d'extraire une liste de courses d'une réponse brute du modèle.
+ * Renvoie null si la réponse n'est pas une liste JSON exploitable
+ * (ex. une réponse conversationnelle en texte).
+ */
+export function extractGroceryList(raw: string): GeneratedList | null {
+  const match = raw.match(/\{[\s\S]*\}/);
+  if (!match) return null;
+  let parsed: any;
+  try {
+    parsed = JSON.parse(match[0]);
+  } catch {
+    return null;
+  }
+  const items: string[] = Array.isArray(parsed?.items)
+    ? parsed.items.map((i: any) => String(i).trim()).filter(Boolean)
+    : [];
+  if (items.length === 0) return null;
+  return {
+    name:
+      typeof parsed.name === 'string' && parsed.name.trim()
+        ? parsed.name.trim()
+        : 'Liste',
+    items,
+  };
+}
 
 /** Conversation libre (réponse complète, non-streaming). */
 export async function chat(
@@ -172,58 +203,4 @@ export function chatStream(
   });
 
   return {promise, abort: () => xhr.abort()};
-}
-
-/**
- * Génère une liste de courses structurée à partir d'une demande en langage
- * naturel. Demande un JSON strict et le parse de façon robuste.
- */
-export async function generateGroceryList(
-  settings: AppSettings,
-  prompt: string,
-  signal?: AbortSignal,
-): Promise<GeneratedList> {
-  const messages: ChatMessage[] = [
-    {
-      role: 'system',
-      content:
-        'Tu génères des listes de courses à partir d’une demande. ' +
-        'Réponds UNIQUEMENT avec un objet JSON valide, sans texte ni balises autour, ' +
-        'au format exact : {"name": "nom court", "items": ["article 1", "article 2"]}. ' +
-        'Chaque article est concis (nom + quantité si utile), en français. ' +
-        'Si la demande ne concerne PAS la nourriture, les repas ou les courses ' +
-        '(ex. une salutation, une question), réponds {"name": "", "items": []}.',
-    },
-    {role: 'user', content: prompt},
-  ];
-
-  // Température basse : on veut un JSON fiable, pas de la créativité.
-  const raw = await postChat(settings, messages, signal, 0.2);
-
-  // Le modèle peut entourer le JSON de texte ou de balises ```json
-  const match = raw.match(/\{[\s\S]*\}/);
-  let parsed: any = null;
-  if (match) {
-    try {
-      parsed = JSON.parse(match[0]);
-    } catch {
-      parsed = null;
-    }
-  }
-
-  const items: string[] = Array.isArray(parsed?.items)
-    ? parsed.items.map((i: any) => String(i).trim()).filter(Boolean)
-    : [];
-  if (items.length === 0) {
-    // Cas typique : l’utilisateur a salué / posé une question en mode liste.
-    throw new AiError(
-      'Ça ne ressemble pas à une demande de liste. Décris un repas ou des ' +
-        'courses (ex. « pâtes pour 2 ce soir »), ou passe en mode Discussion pour discuter.',
-    );
-  }
-
-  return {
-    name: typeof parsed.name === 'string' && parsed.name.trim() ? parsed.name.trim() : 'Liste IA',
-    items,
-  };
 }
