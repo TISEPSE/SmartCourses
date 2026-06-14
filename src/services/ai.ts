@@ -27,6 +27,7 @@ async function postChat(
   settings: AppSettings,
   messages: ChatMessage[],
   signal?: AbortSignal,
+  temperature = 0.4,
 ): Promise<string> {
   const base = requireConfig(settings);
   const url = `${base}/v1/chat/completions`;
@@ -44,7 +45,7 @@ async function postChat(
       body: JSON.stringify({
         model: settings.aiModel || 'qwen2.5:3b',
         messages,
-        temperature: 0.4,
+        temperature,
         stream: false,
       }),
       signal,
@@ -186,34 +187,39 @@ export async function generateGroceryList(
     {
       role: 'system',
       content:
-        'Tu génères des listes de courses. Réponds UNIQUEMENT avec un objet JSON ' +
-        'valide, sans texte autour, au format : ' +
-        '{"name": "nom court de la liste", "items": ["article 1", "article 2"]}. ' +
-        'Les articles sont concis (nom + quantité si utile), en français.',
+        'Tu génères des listes de courses à partir d’une demande. ' +
+        'Réponds UNIQUEMENT avec un objet JSON valide, sans texte ni balises autour, ' +
+        'au format exact : {"name": "nom court", "items": ["article 1", "article 2"]}. ' +
+        'Chaque article est concis (nom + quantité si utile), en français. ' +
+        'Si la demande ne concerne PAS la nourriture, les repas ou les courses ' +
+        '(ex. une salutation, une question), réponds {"name": "", "items": []}.',
     },
     {role: 'user', content: prompt},
   ];
 
-  const raw = await postChat(settings, messages, signal);
+  // Température basse : on veut un JSON fiable, pas de la créativité.
+  const raw = await postChat(settings, messages, signal, 0.2);
 
   // Le modèle peut entourer le JSON de texte ou de balises ```json
   const match = raw.match(/\{[\s\S]*\}/);
-  if (!match) {
-    throw new AiError('La réponse de l’IA n’était pas au format attendu.');
+  let parsed: any = null;
+  if (match) {
+    try {
+      parsed = JSON.parse(match[0]);
+    } catch {
+      parsed = null;
+    }
   }
 
-  let parsed: any;
-  try {
-    parsed = JSON.parse(match[0]);
-  } catch {
-    throw new AiError('Impossible de lire la liste générée par l’IA.');
-  }
-
-  const items: string[] = Array.isArray(parsed.items)
+  const items: string[] = Array.isArray(parsed?.items)
     ? parsed.items.map((i: any) => String(i).trim()).filter(Boolean)
     : [];
   if (items.length === 0) {
-    throw new AiError('L’IA n’a renvoyé aucun article.');
+    // Cas typique : l’utilisateur a salué / posé une question en mode liste.
+    throw new AiError(
+      'Ça ne ressemble pas à une demande de liste. Décris un repas ou des ' +
+        'courses (ex. « pâtes pour 2 ce soir »), ou passe en mode Discussion pour discuter.',
+    );
   }
 
   return {
