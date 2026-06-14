@@ -241,20 +241,30 @@ export default function OnboardingScreen() {
                   key={name}
                   activeOpacity={0.85}
                   style={[
-                    styles.themeRow,
+                    styles.themeCard,
                     {backgroundColor: p.card, borderColor: on ? p.accent : p.border},
                   ]}
                   onPress={() => {
                     haptic();
                     setSetting('theme', name);
                   }}>
-                  <View style={styles.swatches}>
-                    <View style={[styles.swatch, {backgroundColor: p.bg}]} />
-                    <View style={[styles.swatch, {backgroundColor: p.cardHi}]} />
-                    <View style={[styles.swatch, {backgroundColor: p.accent}]} />
+                  {/* Aperçu miniature de l'ambiance */}
+                  <View style={[styles.preview, {backgroundColor: p.bg, borderColor: p.border}]}>
+                    <View style={[styles.previewDot, {backgroundColor: p.accent}]} />
+                    <View style={[styles.previewBar, {backgroundColor: p.cardHi, width: 34}]} />
+                    <View style={[styles.previewBar, {backgroundColor: p.cardHi, width: 22}]} />
                   </View>
                   <Text style={[styles.themeName, {color: p.text}]}>{p.label}</Text>
-                  {on && <Icon name="check-circle" size={22} color={p.accent} />}
+                  <View
+                    style={[
+                      styles.check,
+                      {
+                        borderColor: on ? p.accent : p.border,
+                        backgroundColor: on ? p.accent : 'transparent',
+                      },
+                    ]}>
+                    {on && <Icon name="check" size={16} color={p.onAccent} />}
+                  </View>
                 </TouchableOpacity>
               );
             })}
@@ -264,16 +274,15 @@ export default function OnboardingScreen() {
 
       {/* Boutons */}
       <View style={[styles.footer, {paddingBottom: insets.bottom + spacing.md}]}>
-        {step > 0 ? (
+        {step > 0 && (
           <TouchableOpacity style={styles.backBtn} onPress={back}>
             <Text style={styles.backBtnText}>Retour</Text>
           </TouchableOpacity>
-        ) : (
-          <View style={{flex: 1}} />
         )}
         <TouchableOpacity
           style={[
             styles.nextBtn,
+            step === 0 && styles.nextBtnFull,
             {backgroundColor: canContinue ? accent : colors.cardHi},
           ]}
           onPress={next}
@@ -358,25 +367,35 @@ const makeStyles = (colors: Palette) =>
       lineHeight: 18,
     },
     customBox: {marginTop: spacing.sm},
-    themeRow: {
+    themeCard: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.md,
-      borderWidth: 1.5,
+      gap: spacing.lg,
+      borderWidth: 2,
       borderRadius: radius.lg,
       padding: spacing.md,
-      marginBottom: spacing.sm,
+      marginBottom: spacing.md,
     },
-    swatches: {flexDirection: 'row'},
-    swatch: {
-      width: 22,
-      height: 22,
-      borderRadius: 11,
-      marginRight: -8,
+    preview: {
+      width: 76,
+      height: 58,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      paddingHorizontal: 10,
+      justifyContent: 'center',
+      gap: 5,
+    },
+    previewDot: {width: 16, height: 16, borderRadius: 8, marginBottom: 3},
+    previewBar: {height: 5, borderRadius: 3},
+    themeName: {flex: 1, fontSize: 17, fontWeight: '800'},
+    check: {
+      width: 26,
+      height: 26,
+      borderRadius: 13,
       borderWidth: 2,
-      borderColor: 'rgba(0,0,0,0.25)',
+      alignItems: 'center',
+      justifyContent: 'center',
     },
-    themeName: {flex: 1, fontSize: 16, fontWeight: '800', marginLeft: spacing.sm},
     footer: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -401,5 +420,6 @@ const makeStyles = (colors: Palette) =>
       justifyContent: 'center',
       borderRadius: radius.md,
     },
+    nextBtnFull: {flex: 1, height: 54},
     nextBtnText: {fontSize: 16, fontWeight: '800'},
   });
