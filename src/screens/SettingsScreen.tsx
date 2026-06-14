@@ -15,9 +15,9 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import {RootStackParamList} from '../types';
 import {clearHistory, resetAllData} from '../storage';
-import {colors, spacing, radius} from '../theme';
+import {Palette, PALETTES, ThemeName, spacing, radius} from '../theme';
 import {AppBar, AppSwitch, Card, Divider, SectionLabel, Row} from '../components';
-import {useSettings, THEMES, ThemeName} from '../context/SettingsContext';
+import {useSettings} from '../context/SettingsContext';
 
 interface FieldRowProps {
   label: string;
@@ -29,6 +29,8 @@ interface FieldRowProps {
 }
 
 function FieldRow({label, value, placeholder, onChange, secure, keyboardType}: FieldRowProps) {
+  const {colors} = useSettings();
+  const styles = makeStyles(colors);
   return (
     <View style={styles.fieldRow}>
       <Text style={styles.fieldLabel}>{label}</Text>
@@ -57,6 +59,8 @@ interface ToggleRowProps {
 }
 
 function ToggleRow({label, sub, value, onChange}: ToggleRowProps) {
+  const {colors} = useSettings();
+  const styles = makeStyles(colors);
   return (
     <View style={styles.toggleRow}>
       <View style={styles.toggleInfo}>
@@ -71,7 +75,8 @@ function ToggleRow({label, sub, value, onChange}: ToggleRowProps) {
 export default function SettingsScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
-  const {settings, setSetting, haptic} = useSettings();
+  const {settings, setSetting, colors, haptic} = useSettings();
+  const styles = makeStyles(colors);
 
   const confirmClearHistory = () => {
     Alert.alert(
@@ -120,8 +125,8 @@ export default function SettingsScreen() {
         <SectionLabel label="Thème de couleur" />
         <Card style={styles.themeCard}>
           <View style={styles.themeRow}>
-            {(Object.keys(THEMES) as ThemeName[]).map(name => {
-              const t = THEMES[name];
+            {(Object.keys(PALETTES) as ThemeName[]).map(name => {
+              const t = PALETTES[name];
               const selected = settings.theme === name;
               return (
                 <TouchableOpacity
@@ -209,7 +214,7 @@ export default function SettingsScreen() {
           <FieldRow
             label="Modèle"
             value={settings.aiModel}
-            placeholder="llama3.1"
+            placeholder="qwen2.5:3b"
             onChange={v => setSetting('aiModel', v)}
           />
           <Divider />
@@ -274,7 +279,8 @@ export default function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
   container: {flex: 1, backgroundColor: colors.bg},
   scroll: {flex: 1},
   content: {paddingHorizontal: spacing.lg},

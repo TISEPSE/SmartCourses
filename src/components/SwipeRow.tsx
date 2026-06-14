@@ -10,7 +10,8 @@ import {
 import {Gesture, GestureDetector} from 'react-native-gesture-handler';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
-import {colors, radius} from '../theme';
+import {radius} from '../theme';
+import {useSettings} from '../context/SettingsContext';
 
 export interface SwipeAction {
   icon: string;
@@ -46,6 +47,7 @@ export const SwipeRow = forwardRef<SwipeRowHandle, SwipeRowProps>(function Swipe
   {actions, children, enabled = true, onPress, style, cardStyle},
   ref,
 ) {
+  const {colors} = useSettings();
   const totalWidth = (ACTION_WIDTH + ACTION_GAP) * actions.length;
   const translateX = useRef(new Animated.Value(0)).current;
   const isOpen = useRef(false);

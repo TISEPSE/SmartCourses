@@ -30,6 +30,7 @@ export interface Recipe {
 
 // Navigation param list
 export type RootStackParamList = {
+  Onboarding: undefined;
   Tabs: undefined;
   Shopping: { listId: string };
   CreateList: undefined;

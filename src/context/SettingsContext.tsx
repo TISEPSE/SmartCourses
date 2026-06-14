@@ -8,8 +8,9 @@ import React, {
 import {Vibration} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {AI_DEFAULTS} from '../config/defaults';
+import {PALETTES, Palette, ThemeName} from '../theme';
 
-export type ThemeName = 'blanc' | 'bleu' | 'vert' | 'violet' | 'ambre';
+export type {ThemeName} from '../theme';
 
 export interface AppSettings {
   haptics: boolean;
@@ -18,35 +19,25 @@ export interface AppSettings {
   autoHideChecked: boolean;
   sortCheckedBottom: boolean;
   confirmDelete: boolean;
+  onboarded: boolean;
+  firstName: string;
+  lastName: string;
   userName: string;
   aiBaseUrl: string;
   aiApiKey: string;
   aiModel: string;
 }
 
-interface Theme {
-  accent: string;
-  onAccent: string;
-  /** Accent translucide pour les fonds teintés (badges, surfaces). */
-  accentSoft: string;
-  label: string;
-}
-
-export const THEMES: Record<ThemeName, Theme> = {
-  blanc: {accent: '#FFFFFF', onAccent: '#000000', accentSoft: 'rgba(255,255,255,0.12)', label: 'Blanc'},
-  bleu: {accent: '#4F8EF7', onAccent: '#FFFFFF', accentSoft: 'rgba(79,142,247,0.18)', label: 'Bleu'},
-  vert: {accent: '#34C759', onAccent: '#FFFFFF', accentSoft: 'rgba(52,199,89,0.18)', label: 'Vert'},
-  violet: {accent: '#A78BFA', onAccent: '#FFFFFF', accentSoft: 'rgba(167,139,250,0.20)', label: 'Violet'},
-  ambre: {accent: '#F5A623', onAccent: '#000000', accentSoft: 'rgba(245,166,35,0.18)', label: 'Ambre'},
-};
-
 const DEFAULTS: AppSettings = {
   haptics: true,
   notifications: true,
-  theme: 'blanc',
+  theme: 'nuit',
   autoHideChecked: false,
   sortCheckedBottom: false,
   confirmDelete: true,
+  onboarded: false,
+  firstName: '',
+  lastName: '',
   userName: '',
   aiBaseUrl: AI_DEFAULTS.baseUrl,
   aiApiKey: AI_DEFAULTS.apiKey,
@@ -58,29 +49,56 @@ const STORAGE_KEY = '@sc_settings';
 interface SettingsContextValue {
   settings: AppSettings;
   setSetting: <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => void;
+  /** true une fois les réglages chargés depuis le stockage (évite le flash). */
+  hydrated: boolean;
+  /** Palette complète du thème courant. */
+  colors: Palette;
   accent: string;
   onAccent: string;
   accentSoft: string;
   haptic: () => void;
 }
 
+function paletteFor(theme: ThemeName): Palette {
+  return PALETTES[theme] ?? PALETTES.nuit;
+}
+
 const SettingsContext = createContext<SettingsContextValue>({
   settings: DEFAULTS,
   setSetting: () => {},
-  accent: THEMES.blanc.accent,
-  onAccent: THEMES.blanc.onAccent,
-  accentSoft: THEMES.blanc.accentSoft,
+  hydrated: false,
+  colors: PALETTES.nuit,
+  accent: PALETTES.nuit.accent,
+  onAccent: PALETTES.nuit.onAccent,
+  accentSoft: PALETTES.nuit.accentSoft,
   haptic: () => {},
 });
 
 export function SettingsProvider({children}: {children: React.ReactNode}) {
   const [settings, setSettings] = useState<AppSettings>(DEFAULTS);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     (async () => {
-      const raw = await AsyncStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        setSettings({...DEFAULTS, ...JSON.parse(raw)});
+      try {
+        const raw = await AsyncStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const stored = JSON.parse(raw);
+          // Migration des anciens noms de thème vers les nouvelles ambiances.
+          if (!(stored.theme in PALETTES)) {
+            const legacy: Record<string, ThemeName> = {
+              blanc: 'nuit',
+              bleu: 'ocean',
+              vert: 'foret',
+              violet: 'amethyste',
+              ambre: 'braise',
+            };
+            stored.theme = legacy[stored.theme] ?? 'nuit';
+          }
+          setSettings({...DEFAULTS, ...stored});
+        }
+      } finally {
+        setHydrated(true);
       }
     })();
   }, []);
@@ -102,16 +120,18 @@ export function SettingsProvider({children}: {children: React.ReactNode}) {
     }
   }, [settings.haptics]);
 
-  const theme = THEMES[settings.theme] ?? THEMES.blanc;
+  const palette = paletteFor(settings.theme);
 
   return (
     <SettingsContext.Provider
       value={{
         settings,
         setSetting,
-        accent: theme.accent,
-        onAccent: theme.onAccent,
-        accentSoft: theme.accentSoft,
+        hydrated,
+        colors: palette,
+        accent: palette.accent,
+        onAccent: palette.onAccent,
+        accentSoft: palette.accentSoft,
         haptic,
       }}>
       {children}

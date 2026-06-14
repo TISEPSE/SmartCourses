@@ -14,7 +14,7 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {RootStackParamList} from '../types';
 import {getLists} from '../storage';
 import {GroceryList} from '../types';
-import {colors, spacing, radius} from '../theme';
+import {Palette, spacing, radius} from '../theme';
 import {Card, Progress, PillTag, SectionLabel, Btn} from '../components';
 import {useSettings} from '../context/SettingsContext';
 
@@ -29,7 +29,8 @@ const QUICK_ACTIONS = [
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
-  const {settings, accent, onAccent} = useSettings();
+  const {settings, colors, accent, onAccent} = useSettings();
+  const styles = makeStyles(colors);
   const [lists, setLists] = useState<GroceryList[]>([]);
 
   useEffect(() => {
@@ -184,7 +185,8 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
   container: {flex: 1, backgroundColor: colors.bg},
   appbarRow: {
     height: 56,

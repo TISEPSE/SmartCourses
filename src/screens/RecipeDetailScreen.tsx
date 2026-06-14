@@ -11,14 +11,17 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import {RootStackParamList, Recipe} from '../types';
 import {getRecipes, saveRecipes} from '../storage';
-import {colors, spacing} from '../theme';
+import {Palette, spacing} from '../theme';
 import {AppBar, PillTag, Divider} from '../components';
+import {useSettings} from '../context/SettingsContext';
 
 type Route = RouteProp<RootStackParamList, 'RecipeDetail'>;
 
 export default function RecipeDetailScreen() {
   const navigation = useNavigation();
   const route = useRoute<Route>();
+  const {colors} = useSettings();
+  const styles = makeStyles(colors);
   const {recipeId} = route.params;
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [allRecipes, setAllRecipes] = useState<Recipe[]>([]);
@@ -118,7 +121,8 @@ export default function RecipeDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
   container: {flex: 1, backgroundColor: colors.bg},
   notFound: {color: colors.text2, textAlign: 'center', marginTop: 80, fontSize: 16},
   hero: {

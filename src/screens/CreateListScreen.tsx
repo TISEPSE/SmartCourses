@@ -15,14 +15,17 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 import {RootStackParamList, GroceryList} from '../types';
 import {getLists, saveLists} from '../storage';
-import {colors, spacing, radius} from '../theme';
+import {Palette, spacing, radius} from '../theme';
 import {AppBar, Btn} from '../components';
+import {useSettings} from '../context/SettingsContext';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export default function CreateListScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
+  const {colors} = useSettings();
+  const styles = makeStyles(colors);
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -76,7 +79,8 @@ export default function CreateListScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
   container: {flex: 1, backgroundColor: colors.bg},
   scroll: {flex: 1},
   content: {padding: spacing.lg, paddingTop: spacing.md},

@@ -7,7 +7,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import {RootStackParamList, GroceryList} from '../types';
 import {getLists} from '../storage';
-import {colors, spacing} from '../theme';
+import {Palette, spacing} from '../theme';
 import {AppBar, Card, LargeHead} from '../components';
 import {useSettings} from '../context/SettingsContext';
 
@@ -16,7 +16,8 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 export default function HistoryScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
-  const {accent} = useSettings();
+  const {colors, accent} = useSettings();
+  const styles = makeStyles(colors);
   const [completed, setCompleted] = useState<GroceryList[]>([]);
 
   useEffect(() => {
@@ -89,7 +90,8 @@ export default function HistoryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
   container: {flex: 1, backgroundColor: colors.bg},
   scroll: {flex: 1},
   content: {paddingHorizontal: spacing.lg},

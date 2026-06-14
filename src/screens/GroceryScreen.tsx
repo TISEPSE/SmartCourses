@@ -12,7 +12,7 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 import {RootStackParamList, GroceryList} from '../types';
 import {getLists, deleteList} from '../storage';
-import {colors, spacing, radius} from '../theme';
+import {Palette, spacing, radius} from '../theme';
 import {AppBar, LargeHead, Progress, Fab, SwipeRow} from '../components';
 import {useSettings} from '../context/SettingsContext';
 
@@ -26,6 +26,8 @@ interface SwipeableCardProps {
 }
 
 function SwipeableCard({list, onPress, onDelete, deletable}: SwipeableCardProps) {
+  const {colors} = useSettings();
+  const styles = makeStyles(colors);
   const done = list.items.filter(i => i.checked).length;
   const total = list.items.length;
   const pct = total ? Math.round((done / total) * 100) : 0;
@@ -79,7 +81,8 @@ function SwipeableCard({list, onPress, onDelete, deletable}: SwipeableCardProps)
 export default function GroceryScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
-  const {settings, haptic} = useSettings();
+  const {settings, colors, haptic} = useSettings();
+  const styles = makeStyles(colors);
   const [lists, setLists] = useState<GroceryList[]>([]);
 
   useEffect(() => {
@@ -165,7 +168,8 @@ export default function GroceryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
   container: {flex: 1, backgroundColor: colors.bg},
   scroll: {flex: 1},
   content: {paddingHorizontal: spacing.lg},

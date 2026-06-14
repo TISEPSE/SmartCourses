@@ -13,14 +13,17 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 import {RootStackParamList, Recipe} from '../types';
 import {getRecipes} from '../storage';
-import {colors, spacing, radius} from '../theme';
+import {Palette, spacing, radius} from '../theme';
 import {AppBar, LargeHead} from '../components';
+import {useSettings} from '../context/SettingsContext';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export default function RecipesScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
+  const {colors} = useSettings();
+  const styles = makeStyles(colors);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
 
   useEffect(() => {
@@ -90,7 +93,8 @@ export default function RecipesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
   container: {flex: 1, backgroundColor: colors.bg},
   scroll: {flex: 1},
   content: {paddingHorizontal: spacing.lg},

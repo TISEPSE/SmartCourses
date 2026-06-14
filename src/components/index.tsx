@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import {colors, radius, spacing} from '../theme';
+import {Palette, radius, spacing} from '../theme';
 import {useSettings} from '../context/SettingsContext';
 
 // ── AppBar ──────────────────────────────────────────────
@@ -19,6 +19,8 @@ interface AppBarProps {
   right?: React.ReactNode;
 }
 export function AppBar({title, onBack, actions, right}: AppBarProps) {
+  const {colors} = useSettings();
+  const styles = makeStyles(colors);
   return (
     <View style={styles.appbar}>
       {onBack ? (
@@ -47,6 +49,8 @@ interface LargeHeadProps {
   sub?: string;
 }
 export function LargeHead({title, sub}: LargeHeadProps) {
+  const {colors} = useSettings();
+  const styles = makeStyles(colors);
   return (
     <View style={styles.largeHead}>
       <Text style={styles.largeHeadTitle}>{title}</Text>
@@ -63,6 +67,8 @@ interface CardProps {
   onLongPress?: () => void;
 }
 export function Card({children, style, onPress, onLongPress}: CardProps) {
+  const {colors} = useSettings();
+  const styles = makeStyles(colors);
   if (onPress || onLongPress) {
     return (
       <TouchableOpacity
@@ -86,6 +92,8 @@ interface RowProps {
   onPress?: () => void;
 }
 export function Row({icon, title, subtitle, trail, onPress}: RowProps) {
+  const {colors} = useSettings();
+  const styles = makeStyles(colors);
   const content = (
     <View style={styles.row}>
       {icon && (
@@ -131,7 +139,8 @@ export function Btn({
   style,
   loading,
 }: BtnProps) {
-  const {accent, onAccent} = useSettings();
+  const {colors, accent, onAccent} = useSettings();
+  const styles = makeStyles(colors);
   const btnStyle =
     variant === 'primary'
       ? {backgroundColor: accent}
@@ -171,7 +180,8 @@ interface ChipProps {
   icon?: string;
 }
 export function Chip({children, on, onPress, icon}: ChipProps) {
-  const {accent, onAccent} = useSettings();
+  const {colors, accent, onAccent} = useSettings();
+  const styles = makeStyles(colors);
   return (
     <TouchableOpacity
       style={[styles.chip, on && {backgroundColor: accent, borderColor: accent}]}
@@ -195,7 +205,8 @@ interface ProgressProps {
   value: number; // 0-100
 }
 export function Progress({value}: ProgressProps) {
-  const {accent} = useSettings();
+  const {colors, accent} = useSettings();
+  const styles = makeStyles(colors);
   return (
     <View style={styles.progressTrack}>
       <View
@@ -211,7 +222,8 @@ interface PillTagProps {
   icon?: string;
 }
 export function PillTag({children, icon}: PillTagProps) {
-  const {accent, accentSoft} = useSettings();
+  const {colors, accent, accentSoft} = useSettings();
+  const styles = makeStyles(colors);
   return (
     <View style={[styles.pillTag, {backgroundColor: accentSoft, borderColor: 'transparent'}]}>
       {icon && (
@@ -229,6 +241,8 @@ interface SectionLabelProps {
   onAction?: () => void;
 }
 export function SectionLabel({label, action, onAction}: SectionLabelProps) {
+  const {colors} = useSettings();
+  const styles = makeStyles(colors);
   return (
     <View style={styles.secLabel}>
       <Text style={styles.secLabelText}>{label}</Text>
@@ -243,6 +257,8 @@ export function SectionLabel({label, action, onAction}: SectionLabelProps) {
 
 // ── Divider ─────────────────────────────────────────────
 export function Divider() {
+  const {colors} = useSettings();
+  const styles = makeStyles(colors);
   return <View style={styles.divider} />;
 }
 
@@ -253,7 +269,8 @@ interface FabProps {
   onPress: () => void;
 }
 export function Fab({icon, label, onPress}: FabProps) {
-  const {accent, onAccent} = useSettings();
+  const {colors, accent, onAccent} = useSettings();
+  const styles = makeStyles(colors);
   return (
     <TouchableOpacity
       style={[styles.fab, {backgroundColor: accent}]}
@@ -266,165 +283,166 @@ export function Fab({icon, label, onPress}: FabProps) {
 }
 
 // ── Styles ───────────────────────────────────────────────
-const styles = StyleSheet.create({
-  appbar: {
-    height: 56,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.sm,
-  },
-  appbarTitle: {
-    flex: 1,
-    fontSize: 17,
-    fontWeight: '700',
-    color: colors.text,
-    marginHorizontal: spacing.sm,
-  },
-  iconBtn: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 20,
-  },
-  largeHead: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.md,
-  },
-  largeHeadTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: colors.text,
-    letterSpacing: -0.5,
-  },
-  largeHeadSub: {
-    fontSize: 14,
-    color: colors.text2,
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  card: {
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: 14,
-    minHeight: 56,
-  },
-  rowLead: {
-    width: 36,
-    alignItems: 'center',
-    marginRight: spacing.md,
-  },
-  rowMain: {flex: 1, minWidth: 0},
-  rowTitle: {fontSize: 15, fontWeight: '700', color: colors.text},
-  rowSub: {
-    fontSize: 12.5,
-    color: colors.text2,
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  rowTrail: {marginLeft: spacing.sm},
-  btn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.md,
-    gap: 6,
-    width: '100%',
-  },
-  btnPrimary: {backgroundColor: colors.text},
-  btnTonal: {backgroundColor: colors.cardHi, borderWidth: 1, borderColor: colors.border},
-  btnOutline: {borderWidth: 1, borderColor: colors.border},
-  btnText: {fontSize: 15, fontWeight: '700'},
-  btnTextPrimary: {color: colors.bg},
-  btnTextTonal: {color: colors.text},
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.cardHi,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginRight: spacing.sm,
-  },
-  chipOn: {backgroundColor: colors.text, borderColor: colors.text},
-  chipText: {fontSize: 13.5, fontWeight: '700', color: colors.text2},
-  chipTextOn: {color: colors.bg},
-  progressTrack: {
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.cardHi,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.text,
-  },
-  pillTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    height: 26,
-    borderRadius: 8,
-    backgroundColor: colors.cardHi,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  pillTagText: {fontSize: 12, fontWeight: '700', color: colors.text2},
-  secLabel: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 2,
-    paddingVertical: spacing.md,
-    marginTop: spacing.sm,
-  },
-  secLabelText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: colors.text3,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-  },
-  secLabelAction: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.text2,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.borderSoft,
-    marginHorizontal: spacing.lg,
-  },
-  fab: {
-    position: 'absolute',
-    bottom: 24,
-    right: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.text,
-    borderRadius: 18,
-    paddingHorizontal: 18,
-    height: 52,
-    gap: 8,
-    elevation: 4,
-  },
-  fabLabel: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: colors.bg,
-  },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    appbar: {
+      height: 56,
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: spacing.sm,
+    },
+    appbarTitle: {
+      flex: 1,
+      fontSize: 17,
+      fontWeight: '700',
+      color: colors.text,
+      marginHorizontal: spacing.sm,
+    },
+    iconBtn: {
+      width: 40,
+      height: 40,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 20,
+    },
+    largeHead: {
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.sm,
+      paddingBottom: spacing.md,
+    },
+    largeHeadTitle: {
+      fontSize: 28,
+      fontWeight: '800',
+      color: colors.text,
+      letterSpacing: -0.5,
+    },
+    largeHeadSub: {
+      fontSize: 14,
+      color: colors.text2,
+      fontWeight: '600',
+      marginTop: 2,
+    },
+    card: {
+      backgroundColor: colors.card,
+      borderRadius: radius.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: spacing.lg,
+      paddingVertical: 14,
+      minHeight: 56,
+    },
+    rowLead: {
+      width: 36,
+      alignItems: 'center',
+      marginRight: spacing.md,
+    },
+    rowMain: {flex: 1, minWidth: 0},
+    rowTitle: {fontSize: 15, fontWeight: '700', color: colors.text},
+    rowSub: {
+      fontSize: 12.5,
+      color: colors.text2,
+      fontWeight: '600',
+      marginTop: 2,
+    },
+    rowTrail: {marginLeft: spacing.sm},
+    btn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: radius.md,
+      gap: 6,
+      width: '100%',
+    },
+    btnPrimary: {backgroundColor: colors.text},
+    btnTonal: {backgroundColor: colors.cardHi, borderWidth: 1, borderColor: colors.border},
+    btnOutline: {borderWidth: 1, borderColor: colors.border},
+    btnText: {fontSize: 15, fontWeight: '700'},
+    btnTextPrimary: {color: colors.bg},
+    btnTextTonal: {color: colors.text},
+    chip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 14,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: colors.cardHi,
+      borderWidth: 1,
+      borderColor: colors.border,
+      marginRight: spacing.sm,
+    },
+    chipOn: {backgroundColor: colors.text, borderColor: colors.text},
+    chipText: {fontSize: 13.5, fontWeight: '700', color: colors.text2},
+    chipTextOn: {color: colors.bg},
+    progressTrack: {
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: colors.cardHi,
+      overflow: 'hidden',
+    },
+    progressFill: {
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: colors.text,
+    },
+    pillTag: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 10,
+      height: 26,
+      borderRadius: 8,
+      backgroundColor: colors.cardHi,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    pillTagText: {fontSize: 12, fontWeight: '700', color: colors.text2},
+    secLabel: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 2,
+      paddingVertical: spacing.md,
+      marginTop: spacing.sm,
+    },
+    secLabelText: {
+      fontSize: 12,
+      fontWeight: '800',
+      color: colors.text3,
+      letterSpacing: 0.8,
+      textTransform: 'uppercase',
+    },
+    secLabelAction: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: colors.text2,
+    },
+    divider: {
+      height: 1,
+      backgroundColor: colors.borderSoft,
+      marginHorizontal: spacing.lg,
+    },
+    fab: {
+      position: 'absolute',
+      bottom: 24,
+      right: 20,
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.text,
+      borderRadius: 18,
+      paddingHorizontal: 18,
+      height: 52,
+      gap: 8,
+      elevation: 4,
+    },
+    fabLabel: {
+      fontSize: 15,
+      fontWeight: '800',
+      color: colors.bg,
+    },
+  });
 
 export {SwipeRow} from './SwipeRow';
 export type {SwipeAction, SwipeRowHandle} from './SwipeRow';

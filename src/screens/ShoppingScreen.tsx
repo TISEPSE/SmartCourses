@@ -20,7 +20,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import {RootStackParamList, GroceryList, GroceryItem} from '../types';
 import {getLists, saveLists} from '../storage';
-import {colors, spacing, radius} from '../theme';
+import {Palette, spacing, radius} from '../theme';
 import {Progress, SwipeRow, SwipeRowHandle} from '../components';
 import {useSettings} from '../context/SettingsContext';
 
@@ -32,7 +32,8 @@ export default function ShoppingScreen() {
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
   const {listId} = route.params;
-  const {settings, accent, onAccent, accentSoft, haptic} = useSettings();
+  const {settings, colors, accent, onAccent, accentSoft, haptic} = useSettings();
+  const styles = makeStyles(colors);
 
   const [list, setList] = useState<GroceryList | null>(null);
   const [allLists, setAllLists] = useState<GroceryList[]>([]);
@@ -493,7 +494,8 @@ export default function ShoppingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
   container: {flex: 1, backgroundColor: colors.bg},
   notFound: {color: colors.text2, textAlign: 'center', marginTop: 80, fontSize: 16},
   header: {

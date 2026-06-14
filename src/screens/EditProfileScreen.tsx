@@ -11,14 +11,15 @@ import {
 import {useNavigation} from '@react-navigation/native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
-import {colors, spacing, radius} from '../theme';
+import {Palette, spacing, radius} from '../theme';
 import {AppBar, Btn} from '../components';
 import {useSettings} from '../context/SettingsContext';
 
 export default function EditProfileScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const {settings, setSetting, accent, onAccent, haptic} = useSettings();
+  const {settings, setSetting, colors, accent, onAccent, haptic} = useSettings();
+  const styles = makeStyles(colors);
   const [name, setName] = useState(settings.userName);
 
   const initials = name.trim()
@@ -74,7 +75,8 @@ export default function EditProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
   container: {flex: 1, backgroundColor: colors.bg},
   scroll: {flex: 1},
   content: {padding: spacing.lg, paddingTop: spacing.md},

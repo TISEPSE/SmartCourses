@@ -17,7 +17,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import {RootStackParamList, GroceryList} from '../types';
 import {getLists, saveLists} from '../storage';
-import {colors, spacing, radius} from '../theme';
+import {Palette, spacing, radius} from '../theme';
 import {AppBar} from '../components';
 import {useSettings} from '../context/SettingsContext';
 import {
@@ -45,7 +45,8 @@ const SUGGESTIONS = [
 export default function AiScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
-  const {settings, accent, onAccent, accentSoft, haptic} = useSettings();
+  const {settings, colors, accent, onAccent, accentSoft, haptic} = useSettings();
+  const styles = makeStyles(colors);
 
   const [input, setInput] = useState('');
   const [bubbles, setBubbles] = useState<Bubble[]>([]);
@@ -259,7 +260,8 @@ export default function AiScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
   container: {flex: 1, backgroundColor: colors.bg},
   empty: {
     flex: 1,

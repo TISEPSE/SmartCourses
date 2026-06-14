@@ -1,5 +1,5 @@
 import React from 'react';
-import {Dimensions, Easing} from 'react-native';
+import {Dimensions, Easing, View} from 'react-native';
 import {
   createStackNavigator,
   CardStyleInterpolators,
@@ -9,9 +9,9 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 import {RootStackParamList, TabParamList} from '../types';
-import {colors} from '../theme';
 import {useSettings} from '../context/SettingsContext';
 
+import OnboardingScreen from '../screens/OnboardingScreen';
 import HomeScreen from '../screens/HomeScreen';
 import GroceryScreen from '../screens/GroceryScreen';
 import AiScreen from '../screens/AiScreen';
@@ -41,7 +41,7 @@ const slideTimingSpec = {
 
 function Tabs() {
   const insets = useSafeAreaInsets();
-  const {accent} = useSettings();
+  const {accent, colors} = useSettings();
   const tabBarHeight = 64 + insets.bottom;
 
   return (
@@ -101,8 +101,17 @@ function Tabs() {
 }
 
 export default function Navigation() {
+  const {colors, settings, hydrated} = useSettings();
+
+  // Évite le flash : on n'affiche rien tant que les réglages ne sont pas chargés
+  // (sinon on monterait Tabs avant de savoir s'il faut l'onboarding).
+  if (!hydrated) {
+    return <View style={{flex: 1, backgroundColor: colors.bg}} />;
+  }
+
   return (
     <Stack.Navigator
+      initialRouteName={settings.onboarded ? 'Tabs' : 'Onboarding'}
       screenOptions={{
         headerShown: false,
         gestureEnabled: true,
@@ -114,6 +123,7 @@ export default function Navigation() {
           close: slideTimingSpec,
         },
       }}>
+      <Stack.Screen name="Onboarding" component={OnboardingScreen} />
       <Stack.Screen name="Tabs" component={Tabs} />
       <Stack.Screen name="Shopping" component={ShoppingScreen} />
       <Stack.Screen name="CreateList" component={CreateListScreen} />

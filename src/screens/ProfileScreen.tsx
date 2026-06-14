@@ -7,7 +7,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import {RootStackParamList, GroceryList} from '../types';
 import {getLists} from '../storage';
-import {colors, spacing} from '../theme';
+import {Palette, spacing} from '../theme';
 import {AppBar, Card, Row, SectionLabel, Divider} from '../components';
 import {useSettings} from '../context/SettingsContext';
 
@@ -16,7 +16,8 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
-  const {settings, accent, onAccent} = useSettings();
+  const {settings, colors, accent, onAccent} = useSettings();
+  const styles = makeStyles(colors);
   const [lists, setLists] = useState<GroceryList[]>([]);
 
   useEffect(() => {
@@ -109,7 +110,8 @@ export default function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
   container: {flex: 1, backgroundColor: colors.bg},
   scroll: {flex: 1},
   content: {paddingHorizontal: spacing.lg},
