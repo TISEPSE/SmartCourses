@@ -76,11 +76,16 @@ const CHAT_SYSTEM: ChatMessage = {
     'Si l’utilisateur demande de créer/générer une liste de courses ou de planifier des repas, ' +
     'réponds UNIQUEMENT avec un objet JSON valide, sans aucun texte ni balise autour, au format : ' +
     '{"name":"nom court","items":["ingrédient avec quantité","..."]}. ' +
-    'Règles strictes pour la liste : inclure TOUS les ingrédients réellement nécessaires à la recette ' +
-    'demandée (rien d’oublié), chacun avec une quantité réaliste adaptée au nombre de personnes indiqué ' +
-    '(ex. "6 œufs", "500 g de farine de blé", "1 L de lait", "100 g de beurre"). ' +
-    'Orthographe française correcte et noms d’ingrédients exacts ; aucun article inventé, en double, ' +
-    'ni marqué "facultatif". ' +
+    'IMPORTANT — identifie d’abord PRÉCISÉMENT le plat demandé avant de lister, y compris les plats ' +
+    'régionaux ou composés. Exemples : une « galette complète » bretonne = galette de SARRASIN (blé noir) ' +
+    'garnie de jambon, œuf et fromage râpé (emmental) — ce n’est PAS une simple pâte à crêpe ; ' +
+    'un « croque-monsieur » = pain de mie, jambon, fromage, beurre, béchamel. ' +
+    'Liste uniquement les ingrédients RÉELLEMENT nécessaires à CE plat précis, garniture comprise. ' +
+    'Règles strictes : inclure TOUS les ingrédients (rien d’oublié), chacun avec une quantité réaliste ' +
+    'adaptée au nombre de personnes indiqué (ex. "6 œufs", "300 g de farine de sarrasin", "200 g de jambon"). ' +
+    'Orthographe française correcte et noms d’ingrédients exacts ; aucun article inventé, en double, ni "facultatif". ' +
+    'Si le plat est ambigu, inconnu ou que tu n’es pas sûr de la recette, ne devine PAS : demande une ' +
+    'précision à l’utilisateur en texte clair (sans JSON). ' +
     'Pour toute autre demande (salutation, question, conseil), réponds normalement en texte clair, sans JSON.',
 };
 
