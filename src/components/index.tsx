@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,9 @@ import {
   StyleSheet,
   ViewStyle,
   ActivityIndicator,
+  Modal,
+  ScrollView,
+  Pressable,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {Palette, PALETTES, ThemeName, radius, spacing} from '../theme';
@@ -328,6 +331,83 @@ export function ThemePicker() {
   );
 }
 
+// ── Select ──────────────────────────────────────────────
+// Menu déroulant simple : affiche la valeur courante, ouvre une feuille
+// modale listant les options. Utilisé p.ex. pour le choix du modèle IA.
+export interface SelectOption {
+  label: string;
+  value: string;
+  sub?: string;
+}
+interface SelectProps {
+  value: string;
+  options: SelectOption[];
+  placeholder?: string;
+  onChange: (value: string) => void;
+}
+export function Select({value, options, placeholder, onChange}: SelectProps) {
+  const {colors, accent, haptic} = useSettings();
+  const styles = makeStyles(colors);
+  const [open, setOpen] = useState(false);
+  const current = options.find(o => o.value === value);
+
+  return (
+    <>
+      <TouchableOpacity
+        style={styles.selectBox}
+        activeOpacity={0.7}
+        onPress={() => setOpen(true)}>
+        <Text
+          style={[styles.selectValue, !current && {color: colors.text3}]}
+          numberOfLines={1}>
+          {current?.label ?? value ?? placeholder ?? 'Choisir…'}
+        </Text>
+        <Icon name="chevron-down" size={20} color={colors.text3} />
+      </TouchableOpacity>
+
+      <Modal
+        visible={open}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => setOpen(false)}>
+        <Pressable style={styles.selectOverlay} onPress={() => setOpen(false)}>
+          <Pressable style={styles.selectSheet}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {options.map(o => {
+                const on = o.value === value;
+                return (
+                  <TouchableOpacity
+                    key={o.value}
+                    style={styles.selectOption}
+                    activeOpacity={0.7}
+                    onPress={() => {
+                      haptic();
+                      onChange(o.value);
+                      setOpen(false);
+                    }}>
+                    <View style={{flex: 1}}>
+                      <Text
+                        style={[
+                          styles.selectOptionText,
+                          on && {color: accent, fontWeight: '800'},
+                        ]}>
+                        {o.label}
+                      </Text>
+                      {o.sub && <Text style={styles.selectOptionSub}>{o.sub}</Text>}
+                    </View>
+                    {on && <Icon name="check" size={20} color={accent} />}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </>
+  );
+}
+
 // ── Styles ───────────────────────────────────────────────
 const makeStyles = (colors: Palette) =>
   StyleSheet.create({
@@ -352,6 +432,48 @@ const makeStyles = (colors: Palette) =>
     themePreviewDot: {width: 16, height: 16, borderRadius: 8, marginBottom: 3},
     themePreviewBar: {height: 5, borderRadius: 3},
     themeName: {flex: 1, fontSize: 17, fontWeight: '800'},
+    selectBox: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.bg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: radius.md,
+      paddingHorizontal: spacing.md,
+      paddingVertical: 12,
+      gap: spacing.sm,
+    },
+    selectValue: {flex: 1, fontSize: 15, fontWeight: '700', color: colors.text},
+    selectOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.6)',
+      justifyContent: 'center',
+      paddingHorizontal: spacing.lg,
+    },
+    selectSheet: {
+      backgroundColor: colors.card,
+      borderRadius: radius.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      maxHeight: '70%',
+      overflow: 'hidden',
+    },
+    selectOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: 15,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderSoft,
+    },
+    selectOptionText: {fontSize: 15.5, fontWeight: '700', color: colors.text},
+    selectOptionSub: {
+      fontSize: 12.5,
+      fontWeight: '600',
+      color: colors.text3,
+      marginTop: 2,
+    },
     themeCheck: {
       width: 26,
       height: 26,

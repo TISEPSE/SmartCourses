@@ -1,21 +1,47 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {
   Alert,
   View,
   Text,
   ScrollView,
   TextInput,
+  TouchableOpacity,
   StyleSheet,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import {RootStackParamList} from '../types';
 import {clearHistory, resetAllData} from '../storage';
+import {AI_DEFAULTS} from '../config/defaults';
 import {Palette, spacing, radius} from '../theme';
-import {AppBar, AppSwitch, Card, Divider, SectionLabel, Row, ThemePicker} from '../components';
+import {
+  AppBar,
+  AppSwitch,
+  Card,
+  Divider,
+  SectionLabel,
+  Row,
+  Select,
+  SelectOption,
+  ThemePicker,
+} from '../components';
 import {useSettings} from '../context/SettingsContext';
+
+// Modèles proposés dans le menu déroulant. Adaptés à un petit VPS sans GPU.
+// L'option « Personnalisé » permet de saisir n'importe quel nom de modèle.
+const CUSTOM_MODEL = '__custom__';
+const MODEL_OPTIONS: SelectOption[] = [
+  {label: 'gemma3:4b', value: 'gemma3:4b', sub: 'Recommandé · équilibré'},
+  {label: 'gemma3:1b', value: 'gemma3:1b', sub: 'Plus léger et rapide'},
+  {label: 'qwen2.5:3b', value: 'qwen2.5:3b', sub: 'Bon en discussion'},
+  {label: 'llama3.2:3b', value: 'llama3.2:3b', sub: 'Polyvalent'},
+  {label: 'phi3:mini', value: 'phi3:mini', sub: 'Compact'},
+  {label: 'mistral:7b', value: 'mistral:7b', sub: 'Plus lourd, plus précis'},
+  {label: 'Personnalisé…', value: CUSTOM_MODEL, sub: 'Saisir un autre modèle'},
+];
 
 interface FieldRowProps {
   label: string;
@@ -24,25 +50,33 @@ interface FieldRowProps {
   onChange: (v: string) => void;
   secure?: boolean;
   keyboardType?: 'default' | 'url';
+  onReset?: () => void;
 }
 
-function FieldRow({label, value, placeholder, onChange, secure, keyboardType}: FieldRowProps) {
+function FieldRow({label, value, placeholder, onChange, secure, keyboardType, onReset}: FieldRowProps) {
   const {colors} = useSettings();
   const styles = makeStyles(colors);
   return (
     <View style={styles.fieldRow}>
       <Text style={styles.fieldLabel}>{label}</Text>
-      <TextInput
-        style={styles.fieldInput}
-        value={value}
-        placeholder={placeholder}
-        placeholderTextColor={colors.text3}
-        onChangeText={onChange}
-        secureTextEntry={secure}
-        autoCapitalize="none"
-        autoCorrect={false}
-        keyboardType={keyboardType === 'url' ? 'url' : 'default'}
-      />
+      <View style={styles.fieldInputRow}>
+        <TextInput
+          style={[styles.fieldInput, onReset && {flex: 1}]}
+          value={value}
+          placeholder={placeholder}
+          placeholderTextColor={colors.text3}
+          onChangeText={onChange}
+          secureTextEntry={secure}
+          autoCapitalize="none"
+          autoCorrect={false}
+          keyboardType={keyboardType === 'url' ? 'url' : 'default'}
+        />
+        {onReset && (
+          <TouchableOpacity style={styles.resetBtn} onPress={onReset} activeOpacity={0.7}>
+            <Icon name="restore" size={20} color={colors.text2} />
+          </TouchableOpacity>
+        )}
+      </View>
     </View>
   );
 }
@@ -75,6 +109,13 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const {settings, setSetting, colors, haptic} = useSettings();
   const styles = makeStyles(colors);
+
+  // Mode « modèle personnalisé » : actif si le modèle courant n'est pas dans la
+  // liste, ou si l'utilisateur choisit explicitement « Personnalisé… ».
+  const isKnownModel = MODEL_OPTIONS.some(
+    o => o.value !== CUSTOM_MODEL && o.value === settings.aiModel,
+  );
+  const [customModel, setCustomModel] = useState(!isKnownModel);
 
   const confirmClearHistory = () => {
     Alert.alert(
@@ -172,14 +213,42 @@ export default function SettingsScreen() {
             placeholder="http://mon-vps:11434"
             onChange={v => setSetting('aiBaseUrl', v)}
             keyboardType="url"
+            onReset={
+              settings.aiBaseUrl !== AI_DEFAULTS.baseUrl
+                ? () => {
+                    haptic();
+                    setSetting('aiBaseUrl', AI_DEFAULTS.baseUrl);
+                  }
+                : undefined
+            }
           />
           <Divider />
-          <FieldRow
-            label="Modèle"
-            value={settings.aiModel}
-            placeholder="gemma3:4b"
-            onChange={v => setSetting('aiModel', v)}
-          />
+          <View style={styles.fieldRow}>
+            <Text style={styles.fieldLabel}>Modèle</Text>
+            <Select
+              value={customModel ? CUSTOM_MODEL : settings.aiModel}
+              options={MODEL_OPTIONS}
+              onChange={v => {
+                if (v === CUSTOM_MODEL) {
+                  setCustomModel(true);
+                } else {
+                  setCustomModel(false);
+                  setSetting('aiModel', v);
+                }
+              }}
+            />
+            {customModel && (
+              <TextInput
+                style={[styles.fieldInput, {marginTop: 10}]}
+                value={settings.aiModel}
+                placeholder="ex : gemma3:4b"
+                placeholderTextColor={colors.text3}
+                onChangeText={v => setSetting('aiModel', v)}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            )}
+          </View>
           <Divider />
           <FieldRow
             label="Clé API (optionnel)"
@@ -271,6 +340,17 @@ const makeStyles = (colors: Palette) =>
     paddingVertical: 12,
   },
   fieldLabel: {fontSize: 13, fontWeight: '700', color: colors.text2, marginBottom: 6},
+  fieldInputRow: {flexDirection: 'row', alignItems: 'center', gap: 8},
+  resetBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   fieldInput: {
     backgroundColor: colors.bg,
     borderWidth: 1,

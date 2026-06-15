@@ -42,7 +42,9 @@ const slideTimingSpec = {
 function Tabs() {
   const insets = useSafeAreaInsets();
   const {accent, colors} = useSettings();
-  const tabBarHeight = 64 + insets.bottom;
+  // Barre légèrement remontée : on relève le contenu (icônes + libellés)
+  // au-dessus du bord bas via un padding inférieur un peu plus généreux.
+  const tabBarHeight = 70 + insets.bottom;
 
   return (
     <Tab.Navigator
@@ -72,8 +74,8 @@ function Tabs() {
           borderTopColor: colors.border,
           borderTopWidth: 1,
           height: tabBarHeight,
-          paddingBottom: insets.bottom + 6,
-          paddingTop: 6,
+          paddingBottom: insets.bottom + 14,
+          paddingTop: 8,
         },
         tabBarActiveTintColor: accent,
         tabBarInactiveTintColor: colors.text3,

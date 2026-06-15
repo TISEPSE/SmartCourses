@@ -97,10 +97,11 @@ const makeStyles = (colors: Palette) =>
   StyleSheet.create({
   container: {flex: 1, backgroundColor: colors.bg},
   scroll: {flex: 1},
-  content: {paddingHorizontal: spacing.lg},
+  content: {paddingHorizontal: spacing.lg, flexGrow: 1},
   empty: {
+    flex: 1,
     alignItems: 'center',
-    paddingTop: 80,
+    justifyContent: 'center',
     gap: spacing.md,
   },
   emptyTitle: {fontSize: 16, fontWeight: '700', color: colors.text},

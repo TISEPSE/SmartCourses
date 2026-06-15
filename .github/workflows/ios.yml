@@ -1,0 +1,59 @@
+name: Build iOS (vérification)
+
+# Build de compilation iOS (simulateur, sans signature).
+# Déclenché manuellement : un build macOS coûte ~10x un build Linux, donc on ne
+# le lance pas à chaque release. Pour produire une vraie app installable sur
+# iPhone il faudra un compte Apple Developer + signature de code (CODE_SIGNING).
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install JS dependencies
+        run: npm ci
+
+      - name: Inject AI default token (si secret défini)
+        env:
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+        run: |
+          if [ -n "$AI_API_KEY" ]; then
+            printf "export const DEFAULT_AI_API_KEY = '%s';\n" "$AI_API_KEY" > src/config/secrets.ts
+            echo "Token injecté depuis le secret GitHub."
+          else
+            echo "Pas de secret AI_API_KEY : conservation du token du dépôt."
+          fi
+
+      - name: Setup Ruby (CocoaPods)
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: false
+
+      - name: Install CocoaPods
+        run: gem install cocoapods
+
+      - name: Pod install
+        run: cd ios && pod install --repo-update
+
+      - name: Build for iOS Simulator (sans signature)
+        run: |
+          xcodebuild \
+            -workspace ios/SmartCourses.xcworkspace \
+            -scheme SmartCourses \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            build

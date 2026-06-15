@@ -365,7 +365,10 @@ export default function ShoppingScreen() {
           <TouchableOpacity
             style={[styles.finishBtn, {backgroundColor: accent}]}
             activeOpacity={0.85}
-            onPress={() => setCostModalVisible(true)}>
+            onPress={() => {
+              haptic();
+              setCostModalVisible(true);
+            }}>
             <Icon name="check" size={20} color={onAccent} />
             <Text style={[styles.finishBtnText, {color: onAccent}]}>Terminer</Text>
           </TouchableOpacity>
@@ -620,13 +623,9 @@ const makeStyles = (colors: Palette) =>
   },
   addInput: {
     flex: 1,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 13,
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '600',
     color: colors.text,
   },
@@ -645,11 +644,15 @@ const makeStyles = (colors: Palette) =>
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.7)',
     alignItems: 'center',
-    justifyContent: 'flex-end',
-    paddingBottom: 16,
+    // Centré verticalement : le KeyboardAvoidingView réduit la hauteur quand le
+    // clavier s'ouvre, donc la fenêtre remonte au-dessus du clavier et revient
+    // au centre dès qu'il se ferme.
+    justifyContent: 'center',
+    paddingHorizontal: spacing.lg,
   },
   modalBox: {
-    width: 320,
+    width: '100%',
+    maxWidth: 460,
     backgroundColor: colors.card,
     borderRadius: 20,
     padding: 24,
