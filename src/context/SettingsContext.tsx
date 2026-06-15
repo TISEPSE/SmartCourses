@@ -7,7 +7,6 @@ import React, {
 } from 'react';
 import {Vibration} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {AI_DEFAULTS} from '../config/defaults';
 import {PALETTES, Palette, ThemeName} from '../theme';
 
 export type {ThemeName} from '../theme';
@@ -23,6 +22,9 @@ export interface AppSettings {
   firstName: string;
   lastName: string;
   userName: string;
+  /** Identifiant du fournisseur d'IA (voir config/providers.ts). '' = sans IA. */
+  aiProvider: string;
+  /** URL d'un serveur personnalisé (fournisseur « custom » uniquement). */
   aiBaseUrl: string;
   aiApiKey: string;
   aiModel: string;
@@ -39,15 +41,16 @@ const DEFAULTS: AppSettings = {
   firstName: '',
   lastName: '',
   userName: '',
-  aiBaseUrl: AI_DEFAULTS.baseUrl,
-  aiApiKey: AI_DEFAULTS.apiKey,
-  aiModel: AI_DEFAULTS.model,
+  aiProvider: '',
+  aiBaseUrl: '',
+  aiApiKey: '',
+  aiModel: '',
 };
 
 const STORAGE_KEY = '@sc_settings';
 const MIGRATION_KEY = '@sc_migration';
 // Incrémenter à chaque migration ponctuelle des réglages persistés.
-const CURRENT_MIGRATION = 2;
+const CURRENT_MIGRATION = 3;
 
 interface SettingsContextValue {
   settings: AppSettings;
@@ -102,11 +105,21 @@ export function SettingsProvider({children}: {children: React.ReactNode}) {
           // Migrations ponctuelles des réglages déjà persistés.
           const migRaw = await AsyncStorage.getItem(MIGRATION_KEY);
           const mig = migRaw ? parseInt(migRaw, 10) : 1;
-          if (mig < 2) {
-            // L'ancien modèle par défaut (jamais choisi explicitement) bascule
-            // vers le nouveau modèle intégré.
-            if (stored.aiModel === 'qwen2.5:3b') {
-              stored.aiModel = AI_DEFAULTS.model;
+          if (mig < 3) {
+            // Bascule du modèle « IA intégrée » (VPS supprimé) vers le nouveau
+            // schéma multi-fournisseurs : l'utilisateur fournit sa propre clé.
+            const OLD_VPS = 'https://example.com';
+            if (stored.aiProvider == null) {
+              if (!stored.aiBaseUrl || stored.aiBaseUrl === OLD_VPS) {
+                // Anciennement sur l'IA intégrée (disparue) : repart sans IA.
+                stored.aiProvider = '';
+                stored.aiBaseUrl = '';
+                stored.aiApiKey = '';
+                stored.aiModel = '';
+              } else {
+                // Serveur personnalisé déjà saisi : on le conserve en « custom ».
+                stored.aiProvider = 'custom';
+              }
             }
           }
 

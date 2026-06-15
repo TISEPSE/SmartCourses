@@ -6,6 +6,7 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
+  Linking,
   StyleSheet,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
@@ -15,7 +16,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import {RootStackParamList} from '../types';
 import {clearHistory, resetAllData} from '../storage';
-import {AI_DEFAULTS} from '../config/defaults';
+import {AI_PROVIDERS, getProvider} from '../config/providers';
 import {Palette, spacing, radius} from '../theme';
 import {
   AppBar,
@@ -30,17 +31,10 @@ import {
 } from '../components';
 import {useSettings} from '../context/SettingsContext';
 
-// Modèles proposés dans le menu déroulant. Adaptés à un petit VPS sans GPU.
-// L'option « Personnalisé » permet de saisir n'importe quel nom de modèle.
 const CUSTOM_MODEL = '__custom__';
-const MODEL_OPTIONS: SelectOption[] = [
-  {label: 'gemma3:4b', value: 'gemma3:4b', sub: 'Recommandé · équilibré'},
-  {label: 'gemma3:1b', value: 'gemma3:1b', sub: 'Plus léger et rapide'},
-  {label: 'qwen2.5:3b', value: 'qwen2.5:3b', sub: 'Bon en discussion'},
-  {label: 'llama3.2:3b', value: 'llama3.2:3b', sub: 'Polyvalent'},
-  {label: 'phi3:mini', value: 'phi3:mini', sub: 'Compact'},
-  {label: 'mistral:7b', value: 'mistral:7b', sub: 'Plus lourd, plus précis'},
-  {label: 'Personnalisé…', value: CUSTOM_MODEL, sub: 'Saisir un autre modèle'},
+const PROVIDER_OPTIONS: SelectOption[] = [
+  ...AI_PROVIDERS.map(p => ({label: p.label, value: p.id, sub: p.blurb})),
+  {label: 'Sans IA', value: '', sub: 'Désactiver l’assistant'},
 ];
 
 interface FieldRowProps {
@@ -50,33 +44,25 @@ interface FieldRowProps {
   onChange: (v: string) => void;
   secure?: boolean;
   keyboardType?: 'default' | 'url';
-  onReset?: () => void;
 }
 
-function FieldRow({label, value, placeholder, onChange, secure, keyboardType, onReset}: FieldRowProps) {
+function FieldRow({label, value, placeholder, onChange, secure, keyboardType}: FieldRowProps) {
   const {colors} = useSettings();
   const styles = makeStyles(colors);
   return (
     <View style={styles.fieldRow}>
       <Text style={styles.fieldLabel}>{label}</Text>
-      <View style={styles.fieldInputRow}>
-        <TextInput
-          style={[styles.fieldInput, onReset && {flex: 1}]}
-          value={value}
-          placeholder={placeholder}
-          placeholderTextColor={colors.text3}
-          onChangeText={onChange}
-          secureTextEntry={secure}
-          autoCapitalize="none"
-          autoCorrect={false}
-          keyboardType={keyboardType === 'url' ? 'url' : 'default'}
-        />
-        {onReset && (
-          <TouchableOpacity style={styles.resetBtn} onPress={onReset} activeOpacity={0.7}>
-            <Icon name="restore" size={20} color={colors.text2} />
-          </TouchableOpacity>
-        )}
-      </View>
+      <TextInput
+        style={styles.fieldInput}
+        value={value}
+        placeholder={placeholder}
+        placeholderTextColor={colors.text3}
+        onChangeText={onChange}
+        secureTextEntry={secure}
+        autoCapitalize="none"
+        autoCorrect={false}
+        keyboardType={keyboardType === 'url' ? 'url' : 'default'}
+      />
     </View>
   );
 }
@@ -110,12 +96,36 @@ export default function SettingsScreen() {
   const {settings, setSetting, colors, haptic} = useSettings();
   const styles = makeStyles(colors);
 
-  // Mode « modèle personnalisé » : actif si le modèle courant n'est pas dans la
-  // liste, ou si l'utilisateur choisit explicitement « Personnalisé… ».
-  const isKnownModel = MODEL_OPTIONS.some(
-    o => o.value !== CUSTOM_MODEL && o.value === settings.aiModel,
-  );
-  const [customModel, setCustomModel] = useState(!isKnownModel);
+  const provider = getProvider(settings.aiProvider);
+  const isCloud = !!provider && provider.id !== 'custom';
+  const [modelCustom, setModelCustom] = useState(false);
+  const showCustomModel =
+    modelCustom ||
+    (!!provider &&
+      provider.models.length > 0 &&
+      !!settings.aiModel &&
+      !provider.models.includes(settings.aiModel));
+  const modelOptions: SelectOption[] = provider
+    ? [
+        ...provider.models.map(m => ({label: m, value: m})),
+        {label: 'Personnalisé…', value: CUSTOM_MODEL},
+      ]
+    : [];
+
+  const changeProvider = (v: string) => {
+    haptic();
+    setModelCustom(false);
+    setSetting('aiProvider', v);
+    const p = getProvider(v);
+    if (!p) {
+      setSetting('aiApiKey', '');
+      setSetting('aiModel', '');
+      setSetting('aiBaseUrl', '');
+    } else if (p.id !== 'custom') {
+      setSetting('aiModel', p.defaultModel);
+      setSetting('aiBaseUrl', '');
+    }
+  };
 
   const confirmClearHistory = () => {
     Alert.alert(
@@ -207,60 +217,102 @@ export default function SettingsScreen() {
 
         <SectionLabel label="Assistant IA" />
         <Card>
-          <FieldRow
-            label="URL du serveur"
-            value={settings.aiBaseUrl}
-            placeholder="http://mon-vps:11434"
-            onChange={v => setSetting('aiBaseUrl', v)}
-            keyboardType="url"
-            onReset={
-              settings.aiBaseUrl !== AI_DEFAULTS.baseUrl
-                ? () => {
-                    haptic();
-                    setSetting('aiBaseUrl', AI_DEFAULTS.baseUrl);
-                  }
-                : undefined
-            }
-          />
-          <Divider />
           <View style={styles.fieldRow}>
-            <Text style={styles.fieldLabel}>Modèle</Text>
+            <Text style={styles.fieldLabel}>Fournisseur</Text>
             <Select
-              value={customModel ? CUSTOM_MODEL : settings.aiModel}
-              options={MODEL_OPTIONS}
-              onChange={v => {
-                if (v === CUSTOM_MODEL) {
-                  setCustomModel(true);
-                } else {
-                  setCustomModel(false);
-                  setSetting('aiModel', v);
-                }
-              }}
+              value={settings.aiProvider}
+              options={PROVIDER_OPTIONS}
+              placeholder="Sans IA"
+              onChange={changeProvider}
             />
-            {customModel && (
-              <TextInput
-                style={[styles.fieldInput, {marginTop: 10}]}
-                value={settings.aiModel}
-                placeholder="ex : gemma3:4b"
-                placeholderTextColor={colors.text3}
-                onChangeText={v => setSetting('aiModel', v)}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-            )}
           </View>
-          <Divider />
-          <FieldRow
-            label="Clé API (optionnel)"
-            value={settings.aiApiKey}
-            placeholder="laisser vide si aucune"
-            onChange={v => setSetting('aiApiKey', v)}
-            secure
-          />
+
+          {isCloud && provider && (
+            <>
+              <Divider />
+              <FieldRow
+                label={`Clé API ${provider.label}`}
+                value={settings.aiApiKey}
+                placeholder="Colle ta clé ici…"
+                onChange={v => setSetting('aiApiKey', v)}
+                secure
+              />
+              {!!provider.keyUrl && (
+                <TouchableOpacity
+                  style={styles.keyLink}
+                  onPress={() => Linking.openURL(provider.keyUrl)}>
+                  <Icon name="open-in-new" size={14} color={colors.text3} />
+                  <Text style={styles.keyLinkText}>
+                    Obtenir une clé ({provider.keyHost})
+                  </Text>
+                </TouchableOpacity>
+              )}
+              <Divider />
+              <View style={styles.fieldRow}>
+                <Text style={styles.fieldLabel}>Modèle</Text>
+                <Select
+                  value={showCustomModel ? CUSTOM_MODEL : settings.aiModel}
+                  options={modelOptions}
+                  onChange={v => {
+                    if (v === CUSTOM_MODEL) {
+                      setModelCustom(true);
+                    } else {
+                      setModelCustom(false);
+                      setSetting('aiModel', v);
+                    }
+                  }}
+                />
+                {showCustomModel && (
+                  <TextInput
+                    style={[styles.fieldInput, {marginTop: 10}]}
+                    value={settings.aiModel}
+                    placeholder="nom du modèle"
+                    placeholderTextColor={colors.text3}
+                    onChangeText={v => setSetting('aiModel', v)}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                )}
+              </View>
+            </>
+          )}
+
+          {provider?.id === 'custom' && (
+            <>
+              <Divider />
+              <FieldRow
+                label="URL du serveur"
+                value={settings.aiBaseUrl}
+                placeholder="http://mon-serveur:11434"
+                onChange={v => setSetting('aiBaseUrl', v)}
+                keyboardType="url"
+              />
+              <Divider />
+              <FieldRow
+                label="Modèle"
+                value={settings.aiModel}
+                placeholder="ex : llama3.2:3b"
+                onChange={v => setSetting('aiModel', v)}
+              />
+              <Divider />
+              <FieldRow
+                label="Clé API (optionnel)"
+                value={settings.aiApiKey}
+                placeholder="laisser vide si aucune"
+                onChange={v => setSetting('aiApiKey', v)}
+                secure
+              />
+            </>
+          )}
         </Card>
         <Text style={styles.aiHint}>
-          Compatible Ollama, llama.cpp, vLLM, LM Studio… (API OpenAI sur /v1).
-          Le téléphone doit pouvoir joindre cette adresse.
+          {provider
+            ? provider.id === 'custom'
+              ? 'Serveur compatible API OpenAI (Ollama, vLLM, LM Studio…). Le téléphone doit pouvoir joindre cette adresse.'
+              : 'Ta clé reste stockée sur ton téléphone et n’est envoyée qu’à ' +
+                provider.label +
+                '. Tu es facturé selon ton usage chez le fournisseur.'
+            : 'Aucune IA active. Choisis un fournisseur pour générer des listes et discuter.'}
         </Text>
 
         <SectionLabel label="Navigation" />
@@ -340,17 +392,15 @@ const makeStyles = (colors: Palette) =>
     paddingVertical: 12,
   },
   fieldLabel: {fontSize: 13, fontWeight: '700', color: colors.text2, marginBottom: 6},
-  fieldInputRow: {flexDirection: 'row', alignItems: 'center', gap: 8},
-  resetBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.bg,
+  keyLink: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 5,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: 12,
+    marginTop: -4,
   },
+  keyLinkText: {fontSize: 13, fontWeight: '700', color: colors.text3},
   fieldInput: {
     backgroundColor: colors.bg,
     borderWidth: 1,

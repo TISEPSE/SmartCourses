@@ -3,6 +3,7 @@ import {
   Animated,
   Easing,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   ScrollView,
   StyleSheet,
@@ -20,7 +21,9 @@ import {RootStackParamList} from '../types';
 import {Palette, radius, spacing} from '../theme';
 import {ThemePicker} from '../components';
 import {useSettings} from '../context/SettingsContext';
-import {AI_DEFAULTS} from '../config/defaults';
+import {AI_PROVIDERS, getProvider} from '../config/providers';
+
+const NO_AI = 'none';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Onboarding'>;
 
@@ -50,16 +53,14 @@ export default function OnboardingScreen() {
 
   const [firstName, setFirstName] = useState(settings.firstName);
   const [lastName, setLastName] = useState(settings.lastName);
-  const [aiMode, setAiMode] = useState<'default' | 'custom'>('default');
-  const [url, setUrl] = useState(
-    settings.aiBaseUrl === AI_DEFAULTS.baseUrl ? '' : settings.aiBaseUrl,
-  );
-  const [model, setModel] = useState(
-    settings.aiModel === AI_DEFAULTS.model ? '' : settings.aiModel,
-  );
-  const [apiKey, setApiKey] = useState(
-    settings.aiApiKey === AI_DEFAULTS.apiKey ? '' : settings.aiApiKey,
-  );
+  // '' = rien choisi ; NO_AI = sans IA ; sinon un id de fournisseur.
+  const [provider, setProvider] = useState<string>('');
+  const [url, setUrl] = useState('');
+  const [model, setModel] = useState('');
+  const [apiKey, setApiKey] = useState('');
+
+  const selected = getProvider(provider);
+  const isCloud = !!selected && selected.id !== 'custom';
 
   const next = () => {
     haptic();
@@ -83,13 +84,20 @@ export default function OnboardingScreen() {
     setSetting('lastName', ln);
     setSetting('userName', `${fn} ${ln}`.trim());
 
-    if (aiMode === 'default') {
-      setSetting('aiBaseUrl', AI_DEFAULTS.baseUrl);
-      setSetting('aiModel', AI_DEFAULTS.model);
-      setSetting('aiApiKey', AI_DEFAULTS.apiKey);
-    } else {
+    if (provider === NO_AI || provider === '') {
+      setSetting('aiProvider', '');
+      setSetting('aiBaseUrl', '');
+      setSetting('aiModel', '');
+      setSetting('aiApiKey', '');
+    } else if (provider === 'custom') {
+      setSetting('aiProvider', 'custom');
       setSetting('aiBaseUrl', url.trim());
-      setSetting('aiModel', model.trim() || AI_DEFAULTS.model);
+      setSetting('aiModel', model.trim());
+      setSetting('aiApiKey', apiKey.trim());
+    } else {
+      setSetting('aiProvider', provider);
+      setSetting('aiBaseUrl', '');
+      setSetting('aiModel', selected?.defaultModel ?? '');
       setSetting('aiApiKey', apiKey.trim());
     }
 
@@ -97,12 +105,16 @@ export default function OnboardingScreen() {
     navigation.reset({index: 0, routes: [{name: 'Tabs'}]});
   };
 
+  const step1Ok =
+    provider === NO_AI ||
+    (provider === 'custom' && url.trim().length > 0) ||
+    (isCloud && apiKey.trim().length > 0);
   const canContinue =
-    step !== 0
-      ? step !== 1
-        ? true
-        : aiMode === 'default' || url.trim().length > 0
-      : firstName.trim().length > 0;
+    step === 0
+      ? firstName.trim().length > 0
+      : step === 1
+      ? step1Ok
+      : true;
 
   return (
     <KeyboardAvoidingView
@@ -170,56 +182,86 @@ export default function OnboardingScreen() {
           <View>
             <Text style={styles.title}>Assistant IA</Text>
             <Text style={styles.sub}>
-              Choisis l'IA que l'app utilisera pour générer tes listes et discuter.
+              Choisis une IA et renseigne ta clé, ou continue sans IA.
             </Text>
 
-            <TouchableOpacity
-              activeOpacity={0.8}
-              style={[styles.choice, aiMode === 'default' && styles.choiceOn]}
-              onPress={() => {
-                haptic();
-                setAiMode('default');
-              }}>
-              <Icon
-                name={
-                  aiMode === 'default'
-                    ? 'check-circle'
-                    : 'circle-outline'
-                }
-                size={22}
-                color={aiMode === 'default' ? accent : colors.text3}
-              />
-              <View style={styles.choiceMain}>
-                <Text style={styles.choiceTitle}>IA intégrée</Text>
-                <Text style={styles.choiceSub}>
-                  Prête à l'emploi, rien à configurer. Recommandé.
-                </Text>
-              </View>
-            </TouchableOpacity>
+            {AI_PROVIDERS.map(p => {
+              const on = provider === p.id;
+              return (
+                <TouchableOpacity
+                  key={p.id}
+                  activeOpacity={0.85}
+                  style={[styles.choice, on && styles.choiceOn]}
+                  onPress={() => {
+                    haptic();
+                    setProvider(p.id);
+                  }}>
+                  <View style={[styles.logo, {backgroundColor: p.color}]}>
+                    <Icon name={p.icon} size={20} color="#fff" />
+                  </View>
+                  <View style={styles.choiceMain}>
+                    <Text style={styles.choiceTitle}>{p.label}</Text>
+                    <Text style={styles.choiceSub}>{p.blurb}</Text>
+                  </View>
+                  <Icon
+                    name={on ? 'check-circle' : 'circle-outline'}
+                    size={22}
+                    color={on ? accent : colors.text3}
+                  />
+                </TouchableOpacity>
+              );
+            })}
 
             <TouchableOpacity
-              activeOpacity={0.8}
-              style={[styles.choice, aiMode === 'custom' && styles.choiceOn]}
+              activeOpacity={0.85}
+              style={[styles.choice, provider === NO_AI && styles.choiceOn]}
               onPress={() => {
                 haptic();
-                setAiMode('custom');
+                setProvider(NO_AI);
               }}>
-              <Icon
-                name={
-                  aiMode === 'custom' ? 'check-circle' : 'circle-outline'
-                }
-                size={22}
-                color={aiMode === 'custom' ? accent : colors.text3}
-              />
+              <View style={[styles.logo, {backgroundColor: colors.cardHi}]}>
+                <Icon name="cancel" size={20} color={colors.text3} />
+              </View>
               <View style={styles.choiceMain}>
-                <Text style={styles.choiceTitle}>Une autre IA</Text>
+                <Text style={styles.choiceTitle}>Sans IA</Text>
                 <Text style={styles.choiceSub}>
-                  Connecte ton propre serveur (compatible OpenAI).
+                  Tu pourras l'activer plus tard dans les Paramètres.
                 </Text>
               </View>
+              <Icon
+                name={provider === NO_AI ? 'check-circle' : 'circle-outline'}
+                size={22}
+                color={provider === NO_AI ? accent : colors.text3}
+              />
             </TouchableOpacity>
 
-            {aiMode === 'custom' && (
+            {isCloud && (
+              <View style={styles.customBox}>
+                <Text style={styles.fieldLabel}>Clé API {selected?.label}</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Colle ta clé ici…"
+                  placeholderTextColor={colors.text3}
+                  value={apiKey}
+                  onChangeText={setApiKey}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  secureTextEntry
+                />
+                {!!selected?.keyUrl && (
+                  <TouchableOpacity
+                    style={styles.keyLink}
+                    onPress={() => Linking.openURL(selected.keyUrl)}>
+                    <Icon name="open-in-new" size={14} color={colors.text3} />
+                    <Text style={styles.keyLinkText}>
+                      Où trouver ma clé ? ({selected.keyHost})
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+
+            {provider === 'custom' && (
               <View style={styles.customBox}>
                 <Text style={styles.fieldLabel}>URL du serveur</Text>
                 <TextInput
@@ -235,7 +277,7 @@ export default function OnboardingScreen() {
                 <Text style={styles.fieldLabel}>Modèle</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder={AI_DEFAULTS.model}
+                  placeholder="ex : llama3.2:3b"
                   placeholderTextColor={colors.text3}
                   value={model}
                   onChangeText={setModel}
@@ -245,7 +287,7 @@ export default function OnboardingScreen() {
                 <Text style={styles.fieldLabel}>Clé API (optionnel)</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Bearer token…"
+                  placeholder="laisser vide si aucune"
                   placeholderTextColor={colors.text3}
                   value={apiKey}
                   onChangeText={setApiKey}
@@ -356,6 +398,21 @@ const makeStyles = (colors: Palette) =>
       marginBottom: spacing.sm,
     },
     choiceOn: {borderColor: colors.accent},
+    logo: {
+      width: 38,
+      height: 38,
+      borderRadius: 11,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    keyLink: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      marginTop: 10,
+      paddingVertical: 2,
+    },
+    keyLinkText: {fontSize: 13, fontWeight: '700', color: colors.text3},
     choiceMain: {flex: 1},
     choiceTitle: {fontSize: 16, fontWeight: '800', color: colors.text},
     choiceSub: {

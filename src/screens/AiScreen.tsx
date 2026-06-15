@@ -25,6 +25,7 @@ import {
   AiError,
   chatStream,
   extractGroceryList,
+  isAiConfigured,
   GeneratedList,
   ChatMessage,
 } from '../services/ai';
@@ -62,7 +63,7 @@ export default function AiScreen() {
   // Évite d'écraser la conversation stockée avant qu'elle soit chargée.
   const chatLoaded = useRef(false);
 
-  const configured = settings.aiBaseUrl.trim().length > 0;
+  const configured = isAiConfigured(settings);
 
   // Charge la conversation persistée au montage (en retirant une éventuelle
   // bulle assistant incomplète si l'app a été coupée pendant une réponse).
