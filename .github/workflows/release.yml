@@ -97,7 +97,21 @@ jobs:
         run: sudo xcode-select -s /Applications/Xcode_16.1.app
 
       - name: Ensure iOS platform is installed
-        run: sudo xcodebuild -downloadPlatform iOS
+        run: |
+          # Le téléchargement du runtime iOS chez Apple est parfois instable :
+          # on réessaie plusieurs fois avant d'abandonner.
+          for i in 1 2 3 4; do
+            echo "Tentative $i : installation de la plateforme iOS…"
+            if sudo xcodebuild -downloadPlatform iOS; then
+              echo "Plateforme iOS installée."
+              exit 0
+            fi
+            echo "Échec (réseau Apple instable), nouvelle tentative dans 30 s…"
+            sleep 30
+          done
+          # Dernier recours : on continue, le SDK iPhoneOS est fourni avec Xcode 16.1.
+          # L'étape d'archive échouera clairement si la plateforme manque réellement.
+          echo "downloadPlatform a échoué après 4 tentatives ; on poursuit malgré tout."
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
