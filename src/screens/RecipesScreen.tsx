@@ -14,7 +14,7 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {RootStackParamList, Recipe} from '../types';
 import {getRecipes} from '../storage';
 import {Palette, spacing, radius} from '../theme';
-import {AppBar, LargeHead} from '../components';
+import {AppBar, FoodImage, LargeHead} from '../components';
 import {useSettings} from '../context/SettingsContext';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -64,9 +64,12 @@ export default function RecipesScreen() {
                 onPress={() =>
                   navigation.navigate('RecipeDetail', {recipeId: r.id})
                 }>
-                <View style={styles.recipeThumb}>
-                  <Icon name="food" size={28} color={colors.text3} />
-                </View>
+                <FoodImage
+                  uri={r.image}
+                  emoji={r.emoji}
+                  emojiSize={40}
+                  style={styles.recipeThumb}
+                />
                 <View style={styles.recipeInfo}>
                   <Text style={styles.recipeName} numberOfLines={2}>
                     {r.name}

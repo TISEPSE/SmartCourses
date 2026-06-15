@@ -26,6 +26,10 @@ export interface Recipe {
   fav: boolean;
   ingredients: string[];
   steps: string[];
+  /** Photo de référence (URL distante). Repli sur l'emoji si indisponible. */
+  image?: string;
+  /** Emoji affiché si l'image ne charge pas (hors-ligne, erreur réseau). */
+  emoji?: string;
 }
 
 // Navigation param list

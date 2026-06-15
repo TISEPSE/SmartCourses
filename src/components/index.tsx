@@ -5,10 +5,13 @@ import {
   TouchableOpacity,
   StyleSheet,
   ViewStyle,
+  ImageStyle,
+  StyleProp,
   ActivityIndicator,
   Modal,
   ScrollView,
   Pressable,
+  Image,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {Palette, PALETTES, ThemeName, radius, spacing} from '../theme';
@@ -331,6 +334,36 @@ export function ThemePicker() {
   );
 }
 
+// ── FoodImage ───────────────────────────────────────────
+// Photo de plat avec repli gracieux : si l'URL ne charge pas (hors-ligne,
+// erreur réseau), affiche l'emoji de la recette sur fond teinté.
+interface FoodImageProps {
+  uri?: string;
+  emoji?: string;
+  style?: StyleProp<ViewStyle>;
+  emojiSize?: number;
+}
+export function FoodImage({uri, emoji, style, emojiSize = 40}: FoodImageProps) {
+  const {colors} = useSettings();
+  const styles = makeStyles(colors);
+  const [failed, setFailed] = useState(false);
+  if (uri && !failed) {
+    return (
+      <Image
+        source={{uri}}
+        style={style as StyleProp<ImageStyle>}
+        resizeMode="cover"
+        onError={() => setFailed(true)}
+      />
+    );
+  }
+  return (
+    <View style={[style, styles.foodFallback]}>
+      <Text style={{fontSize: emojiSize}}>{emoji ?? '🍽️'}</Text>
+    </View>
+  );
+}
+
 // ── Select ──────────────────────────────────────────────
 // Menu déroulant simple : affiche la valeur courante, ouvre une feuille
 // modale listant les options. Utilisé p.ex. pour le choix du modèle IA.
@@ -432,6 +465,11 @@ const makeStyles = (colors: Palette) =>
     themePreviewDot: {width: 16, height: 16, borderRadius: 8, marginBottom: 3},
     themePreviewBar: {height: 5, borderRadius: 3},
     themeName: {flex: 1, fontSize: 17, fontWeight: '800'},
+    foodFallback: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.cardHi,
+    },
     selectBox: {
       flexDirection: 'row',
       alignItems: 'center',

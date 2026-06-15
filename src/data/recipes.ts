@@ -1,7 +1,7 @@
 import {Recipe} from '../types';
 
 // Recettes d'exemple chargées au premier lancement (puis modifiables/persistées).
-// Ingrédients avec quantités réalistes et étapes concises.
+// `image` = photo de référence distante (repli sur `emoji` si hors-ligne/erreur).
 export const EXAMPLE_RECIPES: Recipe[] = [
   {
     id: 'r_galette_complete',
@@ -11,6 +11,8 @@ export const EXAMPLE_RECIPES: Recipe[] = [
     kcal: 420,
     serves: 4,
     fav: true,
+    image: 'https://loremflickr.com/640/480/galette,crepe?lock=11',
+    emoji: '🥞',
     ingredients: [
       '250 g de farine de sarrasin',
       '1 œuf (pâte)',
@@ -36,6 +38,8 @@ export const EXAMPLE_RECIPES: Recipe[] = [
     kcal: 540,
     serves: 4,
     fav: false,
+    image: 'https://loremflickr.com/640/480/chicken,curry?lock=22',
+    emoji: '🍛',
     ingredients: [
       '600 g de blancs de poulet',
       '1 oignon',
@@ -62,6 +66,8 @@ export const EXAMPLE_RECIPES: Recipe[] = [
     kcal: 650,
     serves: 2,
     fav: false,
+    image: 'https://loremflickr.com/640/480/pasta,carbonara?lock=33',
+    emoji: '🍝',
     ingredients: [
       '200 g de spaghettis',
       '100 g de pancetta (ou lardons)',
@@ -85,6 +91,8 @@ export const EXAMPLE_RECIPES: Recipe[] = [
     kcal: 380,
     serves: 2,
     fav: false,
+    image: 'https://loremflickr.com/640/480/caesar,salad?lock=44',
+    emoji: '🥗',
     ingredients: [
       '1 cœur de laitue romaine',
       '2 blancs de poulet',
@@ -110,6 +118,8 @@ export const EXAMPLE_RECIPES: Recipe[] = [
     kcal: 180,
     serves: 4,
     fav: false,
+    image: 'https://loremflickr.com/640/480/vegetable,soup?lock=55',
+    emoji: '🍲',
     ingredients: [
       '3 carottes',
       '2 pommes de terre',
@@ -135,6 +145,8 @@ export const EXAMPLE_RECIPES: Recipe[] = [
     kcal: 320,
     serves: 6,
     fav: false,
+    image: 'https://loremflickr.com/640/480/apple,pie?lock=66',
+    emoji: '🥧',
     ingredients: [
       '1 pâte brisée',
       '5 pommes',

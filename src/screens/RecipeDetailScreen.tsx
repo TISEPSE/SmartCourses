@@ -1,18 +1,13 @@
 import React, {useEffect, useState} from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
-} from 'react-native';
+import {View, Text, ScrollView, StyleSheet} from 'react-native';
 import {useNavigation, useRoute, RouteProp} from '@react-navigation/native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import {RootStackParamList, Recipe} from '../types';
 import {getRecipes, saveRecipes} from '../storage';
-import {Palette, spacing} from '../theme';
-import {AppBar, PillTag, Divider} from '../components';
+import {Palette, radius, spacing} from '../theme';
+import {AppBar, FoodImage, PillTag, Divider} from '../components';
 import {useSettings} from '../context/SettingsContext';
 
 type Route = RouteProp<RootStackParamList, 'RecipeDetail'>;
@@ -20,6 +15,7 @@ type Route = RouteProp<RootStackParamList, 'RecipeDetail'>;
 export default function RecipeDetailScreen() {
   const navigation = useNavigation();
   const route = useRoute<Route>();
+  const insets = useSafeAreaInsets();
   const {colors} = useSettings();
   const styles = makeStyles(colors);
   const {recipeId} = route.params;
@@ -45,7 +41,7 @@ export default function RecipeDetailScreen() {
 
   if (!recipe) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, {paddingTop: insets.top}]}>
         <AppBar title="Recette" onBack={() => navigation.goBack()} />
         <Text style={styles.notFound}>Recette introuvable</Text>
       </View>
@@ -53,35 +49,27 @@ export default function RecipeDetailScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Hero */}
-        <View style={styles.hero}>
-          <Icon name="food" size={48} color={colors.text3} />
-        </View>
+    <View style={[styles.container, {paddingTop: insets.top}]}>
+      <AppBar
+        title={recipe.name}
+        onBack={() => navigation.goBack()}
+        actions={[
+          {icon: recipe.fav ? 'heart' : 'heart-outline', onPress: toggleFav},
+        ]}
+      />
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}>
+        <FoodImage
+          uri={recipe.image}
+          emoji={recipe.emoji}
+          emojiSize={64}
+          style={styles.banner}
+        />
+        <Text style={styles.tag}>{recipe.tag}</Text>
+        <Text style={styles.name}>{recipe.name}</Text>
 
-        {/* Back & fav */}
-        <View style={styles.heroActions}>
-          <TouchableOpacity
-            style={styles.heroBtn}
-            onPress={() => navigation.goBack()}>
-            <Icon name="arrow-left" size={23} color={colors.text} />
-          </TouchableOpacity>
-          <View style={{flex: 1}} />
-          <TouchableOpacity style={styles.heroBtn} onPress={toggleFav}>
-            <Icon
-              name={recipe.fav ? 'heart' : 'heart-outline'}
-              size={22}
-              color={colors.text}
-            />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.content}>
-          <Text style={styles.tag}>{recipe.tag}</Text>
-          <Text style={styles.name}>{recipe.name}</Text>
-
-          <View style={styles.pills}>
+        <View style={styles.pills}>
             <PillTag icon="clock-outline">{`${recipe.time} min`}</PillTag>
             <PillTag icon="fire">{`${recipe.kcal} kcal`}</PillTag>
             <PillTag icon="account-group">{`${recipe.serves} pers.`}</PillTag>
@@ -114,8 +102,7 @@ export default function RecipeDetailScreen() {
             </>
           )}
 
-          <View style={{height: 32}} />
-        </View>
+        <View style={{height: 32}} />
       </ScrollView>
     </View>
   );
@@ -125,30 +112,13 @@ const makeStyles = (colors: Palette) =>
   StyleSheet.create({
   container: {flex: 1, backgroundColor: colors.bg},
   notFound: {color: colors.text2, textAlign: 'center', marginTop: 80, fontSize: 16},
-  hero: {
-    height: 220,
-    backgroundColor: colors.cardHi,
-    alignItems: 'center',
-    justifyContent: 'center',
+  content: {paddingHorizontal: spacing.lg, paddingBottom: spacing.lg},
+  banner: {
+    width: '100%',
+    height: 190,
+    borderRadius: radius.lg,
+    marginBottom: spacing.lg,
   },
-  heroActions: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    paddingHorizontal: spacing.sm,
-    paddingTop: spacing.sm,
-  },
-  heroBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  content: {padding: spacing.lg},
   tag: {
     fontSize: 12,
     fontWeight: '700',
