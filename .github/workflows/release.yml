@@ -135,10 +135,14 @@ jobs:
 
       - name: Package unsigned IPA
         run: |
+          set -euo pipefail
+          APP=$(find build/SmartCourses.xcarchive/Products/Applications -maxdepth 1 -name '*.app' | head -1)
+          echo "App trouvée : $APP"
+          rm -rf build/Payload
           mkdir -p build/Payload
-          cp -r build/SmartCourses.xcarchive/Products/Applications/SmartCourses.app build/Payload/
-          cd build && zip -qr "SmartCourses-${{ github.ref_name }}.ipa" Payload
-          ls -lh build/SmartCourses-*.ipa || ls -lh "build/SmartCourses-${{ github.ref_name }}.ipa"
+          cp -R "$APP" build/Payload/
+          ( cd build && zip -qr "SmartCourses-${{ github.ref_name }}.ipa" Payload )
+          ls -lh "build/SmartCourses-${{ github.ref_name }}.ipa"
 
       - name: Attach IPA to release
         uses: softprops/action-gh-release@v2
