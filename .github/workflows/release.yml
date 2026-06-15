@@ -96,6 +96,9 @@ jobs:
       - name: Select Xcode 16
         run: sudo xcode-select -s /Applications/Xcode_16.1.app
 
+      - name: Ensure iOS platform is installed
+        run: sudo xcodebuild -downloadPlatform iOS
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
