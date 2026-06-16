@@ -18,7 +18,7 @@ import {RootStackParamList} from '../types';
 import {clearHistory, resetAllData} from '../storage';
 import {AI_PROVIDERS, getProvider} from '../config/providers';
 import {ProviderBadge} from '../assets/logos';
-import {Palette, spacing, radius} from '../theme';
+import {Palette, PALETTES, ThemeName, spacing, radius} from '../theme';
 import {
   AppBar,
   AppSwitch,
@@ -28,9 +28,12 @@ import {
   Row,
   Select,
   SelectOption,
-  ThemePicker,
 } from '../components';
 import {useSettings} from '../context/SettingsContext';
+
+const THEME_OPTIONS: SelectOption[] = (Object.keys(PALETTES) as ThemeName[]).map(
+  name => ({label: PALETTES[name].label, value: name}),
+);
 
 const CUSTOM_MODEL = '__custom__';
 
@@ -169,7 +172,19 @@ export default function SettingsScreen() {
         showsVerticalScrollIndicator={false}>
 
         <SectionLabel label="Thème de couleur" />
-        <ThemePicker />
+        <Card>
+          <View style={styles.fieldRow}>
+            <Text style={styles.fieldLabel}>Thème</Text>
+            <Select
+              value={settings.theme}
+              options={THEME_OPTIONS}
+              onChange={v => {
+                haptic();
+                setSetting('theme', v as ThemeName);
+              }}
+            />
+          </View>
+        </Card>
 
         <SectionLabel label="Application" />
         <Card>
@@ -347,13 +362,6 @@ export default function SettingsScreen() {
 
         <SectionLabel label="Navigation" />
         <Card>
-          <Row
-            icon="chart-box"
-            title="Statistiques"
-            subtitle="Budget mensuel, dépenses"
-            onPress={() => navigation.navigate('Stats')}
-          />
-          <Divider />
           <Row
             icon="history"
             title="Historique"

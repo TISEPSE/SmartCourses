@@ -124,6 +124,7 @@ const makeStyles = (colors: Palette) =>
     overflow: 'hidden',
   },
   recipeThumb: {
+    width: '100%',
     height: 110,
     backgroundColor: colors.cardHi,
     alignItems: 'center',

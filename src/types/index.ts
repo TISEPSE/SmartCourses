@@ -50,7 +50,6 @@ export type RootStackParamList = {
   Settings: undefined;
   Preferences: undefined;
   History: undefined;
-  Stats: undefined;
   EditProfile: undefined;
 };
 

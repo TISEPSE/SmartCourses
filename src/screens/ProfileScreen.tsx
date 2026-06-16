@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import {ScrollView, StyleSheet, Text, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
@@ -13,10 +13,20 @@ import {useSettings} from '../context/SettingsContext';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
+const euro = (n: number) => `${n.toFixed(2).replace('.', ',')} €`;
+const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+interface MonthStat {
+  key: string;
+  label: string;
+  total: number;
+  count: number;
+}
+
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
-  const {settings, colors, accent, onAccent} = useSettings();
+  const {settings, colors, accent, accentSoft, onAccent} = useSettings();
   const styles = makeStyles(colors);
   const [lists, setLists] = useState<GroceryList[]>([]);
 
@@ -27,9 +37,36 @@ export default function ProfileScreen() {
     return unsubscribe;
   }, [navigation]);
 
-  const completed = lists.filter(l => l.completedAt);
-  const totalSpent = completed.reduce((sum, l) => sum + (l.totalCost ?? 0), 0);
-  const totalItems = completed.reduce((sum, l) => sum + l.items.length, 0);
+  const {months, total, avg, count, currentMonth, maxMonth} = useMemo(() => {
+    const completed = lists.filter(l => l.completedAt && l.totalCost != null);
+    const map = new Map<string, MonthStat>();
+    for (const l of completed) {
+      const d = new Date(l.completedAt as string);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const label = d.toLocaleDateString('fr-FR', {month: 'long', year: 'numeric'});
+      const m = map.get(key) ?? {key, label, total: 0, count: 0};
+      m.total += l.totalCost ?? 0;
+      m.count += 1;
+      map.set(key, m);
+    }
+    const monthsArr = [...map.values()].sort((a, b) => b.key.localeCompare(a.key));
+    const totalSpent = completed.reduce((s, l) => s + (l.totalCost ?? 0), 0);
+    const now = new Date();
+    const curKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    return {
+      months: monthsArr,
+      total: totalSpent,
+      avg: completed.length ? totalSpent / completed.length : 0,
+      count: completed.length,
+      maxMonth: monthsArr.reduce((m, x) => Math.max(m, x.total), 0) || 1,
+      currentMonth: map.get(curKey) ?? {
+        key: curKey,
+        label: now.toLocaleDateString('fr-FR', {month: 'long', year: 'numeric'}),
+        total: 0,
+        count: 0,
+      },
+    };
+  }, [lists]);
 
   const initials = settings.userName
     ? settings.userName
@@ -63,28 +100,66 @@ export default function ProfileScreen() {
           <Icon name="pencil-outline" size={20} color={colors.text3} />
         </Card>
 
-        {/* Statistiques */}
-        <SectionLabel label="Statistiques" />
+        {/* Budget mensuel */}
+        <SectionLabel label="Budget" />
+        <Card style={[styles.hero, {backgroundColor: accentSoft}]}>
+          <Text style={[styles.heroLabel, {color: accent}]}>
+            {capitalize(currentMonth.label)}
+          </Text>
+          <Text style={[styles.heroValue, {color: accent}]}>
+            {euro(currentMonth.total)}
+          </Text>
+          <Text style={[styles.heroSub, {color: accent}]}>
+            {currentMonth.count} course{currentMonth.count > 1 ? 's' : ''} ce mois-ci
+          </Text>
+        </Card>
+
         <View style={styles.statsRow}>
           <Card style={styles.statCard}>
-            <Text style={[styles.statValue, {color: accent}]}>{completed.length}</Text>
+            <Text style={[styles.statValue, {color: accent}]}>{count}</Text>
             <Text style={styles.statLabel}>
-              Liste{completed.length > 1 ? 's' : ''} terminée{completed.length > 1 ? 's' : ''}
+              Course{count > 1 ? 's' : ''} terminée{count > 1 ? 's' : ''}
             </Text>
           </Card>
           <Card style={styles.statCard}>
-            <Text style={[styles.statValue, {color: accent}]}>
-              {totalSpent.toFixed(0)} €
-            </Text>
+            <Text style={[styles.statValue, {color: accent}]}>{euro(total)}</Text>
             <Text style={styles.statLabel}>Total dépensé</Text>
           </Card>
           <Card style={styles.statCard}>
-            <Text style={[styles.statValue, {color: accent}]}>{totalItems}</Text>
-            <Text style={styles.statLabel}>
-              Article{totalItems > 1 ? 's' : ''} acheté{totalItems > 1 ? 's' : ''}
-            </Text>
+            <Text style={[styles.statValue, {color: accent}]}>{euro(avg)}</Text>
+            <Text style={styles.statLabel}>Moyenne / course</Text>
           </Card>
         </View>
+
+        {months.length > 0 && (
+          <>
+            <SectionLabel label="Par mois" />
+            {months.map(m => (
+              <Card key={m.key} style={styles.monthCard}>
+                <View style={styles.monthHead}>
+                  <Text style={styles.monthLabel}>{capitalize(m.label)}</Text>
+                  <Text style={[styles.monthTotal, {color: accent}]}>
+                    {euro(m.total)}
+                  </Text>
+                </View>
+                <View style={styles.barTrack}>
+                  <View
+                    style={[
+                      styles.barFill,
+                      {
+                        width: `${(m.total / maxMonth) * 100}%`,
+                        backgroundColor: accent,
+                      },
+                    ]}
+                  />
+                </View>
+                <Text style={styles.monthCount}>
+                  {m.count} course{m.count > 1 ? 's' : ''}
+                </Text>
+              </Card>
+            ))}
+          </>
+        )}
 
         {/* Raccourcis */}
         <SectionLabel label="Application" />
@@ -112,45 +187,96 @@ export default function ProfileScreen() {
 
 const makeStyles = (colors: Palette) =>
   StyleSheet.create({
-  container: {flex: 1, backgroundColor: colors.bg},
-  scroll: {flex: 1},
-  content: {paddingHorizontal: spacing.lg},
-  profileCard: {
-    padding: spacing.lg,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    marginTop: spacing.sm,
-  },
-  avatar: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {fontSize: 18, fontWeight: '800'},
-  profileInfo: {flex: 1},
-  profileName: {fontSize: 19, fontWeight: '800', color: colors.text, letterSpacing: -0.3},
-  profileEmail: {fontSize: 13.5, color: colors.text2, fontWeight: '600', marginTop: 2},
-  statsRow: {flexDirection: 'row', gap: 10},
-  statCard: {
-    flex: 1,
-    padding: spacing.md,
-    alignItems: 'center',
-    gap: 4,
-  },
-  statValue: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: colors.text,
-    letterSpacing: -0.5,
-  },
-  statLabel: {
-    fontSize: 11.5,
-    fontWeight: '700',
-    color: colors.text2,
-    textAlign: 'center',
-  },
-  bottomSpace: {height: 32},
-});
+    container: {flex: 1, backgroundColor: colors.bg},
+    scroll: {flex: 1},
+    content: {paddingHorizontal: spacing.lg},
+    profileCard: {
+      padding: spacing.lg,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+      marginTop: spacing.sm,
+    },
+    avatar: {
+      width: 58,
+      height: 58,
+      borderRadius: 29,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    avatarText: {fontSize: 18, fontWeight: '800'},
+    profileInfo: {flex: 1},
+    profileName: {
+      fontSize: 19,
+      fontWeight: '800',
+      color: colors.text,
+      letterSpacing: -0.3,
+    },
+    profileEmail: {
+      fontSize: 13.5,
+      color: colors.text2,
+      fontWeight: '600',
+      marginTop: 2,
+    },
+    hero: {
+      padding: spacing.lg,
+      borderWidth: 0,
+      marginBottom: spacing.md,
+    },
+    heroLabel: {
+      fontSize: 13,
+      fontWeight: '800',
+      textTransform: 'uppercase',
+      letterSpacing: 0.6,
+      opacity: 0.9,
+    },
+    heroValue: {
+      fontSize: 32,
+      fontWeight: '900',
+      letterSpacing: -1,
+      marginTop: 4,
+    },
+    heroSub: {fontSize: 13.5, fontWeight: '700', marginTop: 2, opacity: 0.9},
+    statsRow: {flexDirection: 'row', gap: 10},
+    statCard: {
+      flex: 1,
+      padding: spacing.md,
+      alignItems: 'center',
+      gap: 4,
+    },
+    statValue: {
+      fontSize: 17,
+      fontWeight: '800',
+      color: colors.text,
+      letterSpacing: -0.5,
+    },
+    statLabel: {
+      fontSize: 11.5,
+      fontWeight: '700',
+      color: colors.text2,
+      textAlign: 'center',
+    },
+    monthCard: {padding: spacing.lg, marginBottom: spacing.sm},
+    monthHead: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    monthLabel: {fontSize: 15, fontWeight: '700', color: colors.text},
+    monthTotal: {fontSize: 16, fontWeight: '800'},
+    barTrack: {
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: colors.cardHi,
+      overflow: 'hidden',
+      marginTop: 10,
+    },
+    barFill: {height: 6, borderRadius: 3},
+    monthCount: {
+      fontSize: 12.5,
+      fontWeight: '600',
+      color: colors.text2,
+      marginTop: 8,
+    },
+    bottomSpace: {height: 32},
+  });
