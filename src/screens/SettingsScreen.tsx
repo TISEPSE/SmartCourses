@@ -17,6 +17,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {RootStackParamList} from '../types';
 import {clearHistory, resetAllData} from '../storage';
 import {AI_PROVIDERS, getProvider} from '../config/providers';
+import {ProviderBadge} from '../assets/logos';
 import {Palette, spacing, radius} from '../theme';
 import {
   AppBar,
@@ -32,10 +33,6 @@ import {
 import {useSettings} from '../context/SettingsContext';
 
 const CUSTOM_MODEL = '__custom__';
-const PROVIDER_OPTIONS: SelectOption[] = [
-  ...AI_PROVIDERS.map(p => ({label: p.label, value: p.id, sub: p.blurb})),
-  {label: 'Sans IA', value: '', sub: 'Désactiver l’assistant'},
-];
 
 interface FieldRowProps {
   label: string;
@@ -93,7 +90,7 @@ function ToggleRow({label, sub, value, onChange}: ToggleRowProps) {
 export default function SettingsScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
-  const {settings, setSetting, colors, haptic} = useSettings();
+  const {settings, setSetting, colors, accent, haptic} = useSettings();
   const styles = makeStyles(colors);
 
   const provider = getProvider(settings.aiProvider);
@@ -216,20 +213,53 @@ export default function SettingsScreen() {
         </Card>
 
         <SectionLabel label="Assistant IA" />
-        <Card>
-          <View style={styles.fieldRow}>
-            <Text style={styles.fieldLabel}>Fournisseur</Text>
-            <Select
-              value={settings.aiProvider}
-              options={PROVIDER_OPTIONS}
-              placeholder="Sans IA"
-              onChange={changeProvider}
-            />
+        {AI_PROVIDERS.map(p => {
+          const on = settings.aiProvider === p.id;
+          return (
+            <TouchableOpacity
+              key={p.id}
+              activeOpacity={0.85}
+              style={[styles.choice, on && styles.choiceOn]}
+              onPress={() => changeProvider(p.id)}>
+              <ProviderBadge
+                id={p.id}
+                fallbackIcon={p.icon}
+                fallbackColor={p.color}
+              />
+              <View style={styles.choiceMain}>
+                <Text style={styles.choiceTitle}>{p.label}</Text>
+                <Text style={styles.choiceSub}>{p.blurb}</Text>
+              </View>
+              <Icon
+                name={on ? 'check-circle' : 'circle-outline'}
+                size={22}
+                color={on ? accent : colors.text3}
+              />
+            </TouchableOpacity>
+          );
+        })}
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={[styles.choice, settings.aiProvider === '' && styles.choiceOn]}
+          onPress={() => changeProvider('')}>
+          <View style={[styles.logo, {backgroundColor: colors.cardHi}]}>
+            <Icon name="cancel" size={20} color={colors.text3} />
           </View>
+          <View style={styles.choiceMain}>
+            <Text style={styles.choiceTitle}>Sans IA</Text>
+            <Text style={styles.choiceSub}>Désactiver l’assistant</Text>
+          </View>
+          <Icon
+            name={settings.aiProvider === '' ? 'check-circle' : 'circle-outline'}
+            size={22}
+            color={settings.aiProvider === '' ? accent : colors.text3}
+          />
+        </TouchableOpacity>
 
-          {isCloud && provider && (
-            <>
-              <Divider />
+        {(isCloud || provider?.id === 'custom') && (
+          <Card style={styles.aiFieldsCard}>
+            {isCloud && provider && (
+              <>
               <FieldRow
                 label={`Clé API ${provider.label}`}
                 value={settings.aiApiKey}
@@ -277,9 +307,8 @@ export default function SettingsScreen() {
             </>
           )}
 
-          {provider?.id === 'custom' && (
+            {provider?.id === 'custom' && (
             <>
-              <Divider />
               <FieldRow
                 label="URL du serveur"
                 value={settings.aiBaseUrl}
@@ -303,8 +332,9 @@ export default function SettingsScreen() {
                 secure
               />
             </>
-          )}
-        </Card>
+            )}
+          </Card>
+        )}
         <Text style={styles.aiHint}>
           {provider
             ? provider.id === 'custom'
@@ -317,6 +347,13 @@ export default function SettingsScreen() {
 
         <SectionLabel label="Navigation" />
         <Card>
+          <Row
+            icon="chart-box"
+            title="Statistiques"
+            subtitle="Budget mensuel, dépenses"
+            onPress={() => navigation.navigate('Stats')}
+          />
+          <Divider />
           <Row
             icon="history"
             title="Historique"
@@ -401,6 +438,35 @@ const makeStyles = (colors: Palette) =>
     marginTop: -4,
   },
   keyLinkText: {fontSize: 13, fontWeight: '700', color: colors.text3},
+  choice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: colors.card,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  choiceOn: {borderColor: colors.accent},
+  logo: {
+    width: 38,
+    height: 38,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  choiceMain: {flex: 1},
+  choiceTitle: {fontSize: 15.5, fontWeight: '800', color: colors.text},
+  choiceSub: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: colors.text2,
+    marginTop: 2,
+    lineHeight: 17,
+  },
+  aiFieldsCard: {marginTop: spacing.xs},
   fieldInput: {
     backgroundColor: colors.bg,
     borderWidth: 1,

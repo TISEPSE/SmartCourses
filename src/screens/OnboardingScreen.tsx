@@ -20,6 +20,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {RootStackParamList} from '../types';
 import {Palette, radius, spacing} from '../theme';
 import {ThemePicker} from '../components';
+import {ProviderBadge} from '../assets/logos';
 import {useSettings} from '../context/SettingsContext';
 import {AI_PROVIDERS, getProvider} from '../config/providers';
 
@@ -196,9 +197,11 @@ export default function OnboardingScreen() {
                     haptic();
                     setProvider(p.id);
                   }}>
-                  <View style={[styles.logo, {backgroundColor: p.color}]}>
-                    <Icon name={p.icon} size={20} color="#fff" />
-                  </View>
+                  <ProviderBadge
+                    id={p.id}
+                    fallbackIcon={p.icon}
+                    fallbackColor={p.color}
+                  />
                   <View style={styles.choiceMain}>
                     <Text style={styles.choiceTitle}>{p.label}</Text>
                     <Text style={styles.choiceSub}>{p.blurb}</Text>

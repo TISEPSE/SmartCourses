@@ -5,8 +5,11 @@ import {EXAMPLE_RECIPES} from '../data/recipes';
 const KEYS = {
   lists: '@sc_lists',
   recipes: '@sc_recipes',
-  recipesSeeded: '@sc_recipes_seeded',
+  // v2 : ingrédients structurés (quantité + unité + nom) + photos locales.
+  recipesSeeded: '@sc_recipes_seeded_v2',
 };
+
+const EXAMPLE_IDS = new Set(EXAMPLE_RECIPES.map(r => r.id));
 
 export async function getLists(): Promise<GroceryList[]> {
   const raw = await AsyncStorage.getItem(KEYS.lists);
@@ -27,16 +30,18 @@ export async function saveRecipes(recipes: Recipe[]): Promise<void> {
 }
 
 /**
- * Charge les recettes d'exemple au tout premier lancement (une seule fois).
- * Ne réécrit jamais par-dessus des recettes existantes.
+ * Charge (ou met à jour) les recettes d'exemple. Exécuté une seule fois par
+ * version de schéma : remplace les recettes d'exemple par leur version à jour
+ * (nouveau format d'ingrédients) tout en conservant les recettes ajoutées par
+ * l'utilisateur.
  */
 export async function seedRecipesIfNeeded(): Promise<void> {
   const seeded = await AsyncStorage.getItem(KEYS.recipesSeeded);
   if (seeded) return;
   const existing = await getRecipes();
-  if (existing.length === 0) {
-    await saveRecipes(EXAMPLE_RECIPES);
-  }
+  // On garde les recettes perso, on (re)pose les exemples au format courant.
+  const userRecipes = existing.filter(r => !EXAMPLE_IDS.has(r.id));
+  await saveRecipes([...EXAMPLE_RECIPES, ...userRecipes]);
   await AsyncStorage.setItem(KEYS.recipesSeeded, '1');
 }
 

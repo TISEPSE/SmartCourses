@@ -6,6 +6,7 @@ import {
   StyleSheet,
   ViewStyle,
   ImageStyle,
+  ImageSourcePropType,
   StyleProp,
   ActivityIndicator,
   Modal,
@@ -68,7 +69,7 @@ export function LargeHead({title, sub}: LargeHeadProps) {
 // ── Card ────────────────────────────────────────────────
 interface CardProps {
   children: React.ReactNode;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   onPress?: () => void;
   onLongPress?: () => void;
 }
@@ -335,22 +336,22 @@ export function ThemePicker() {
 }
 
 // ── FoodImage ───────────────────────────────────────────
-// Photo de plat avec repli gracieux : si l'URL ne charge pas (hors-ligne,
-// erreur réseau), affiche l'emoji de la recette sur fond teinté.
+// Photo de plat (locale, hors-ligne) avec repli gracieux : si aucune source
+// n'est fournie ou si elle ne charge pas, affiche l'emoji sur fond teinté.
 interface FoodImageProps {
-  uri?: string;
+  source?: ImageSourcePropType;
   emoji?: string;
   style?: StyleProp<ViewStyle>;
   emojiSize?: number;
 }
-export function FoodImage({uri, emoji, style, emojiSize = 40}: FoodImageProps) {
+export function FoodImage({source, emoji, style, emojiSize = 40}: FoodImageProps) {
   const {colors} = useSettings();
   const styles = makeStyles(colors);
   const [failed, setFailed] = useState(false);
-  if (uri && !failed) {
+  if (source && !failed) {
     return (
       <Image
-        source={{uri}}
+        source={source}
         style={style as StyleProp<ImageStyle>}
         resizeMode="cover"
         onError={() => setFailed(true)}

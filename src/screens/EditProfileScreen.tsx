@@ -20,11 +20,13 @@ export default function EditProfileScreen() {
   const insets = useSafeAreaInsets();
   const {settings, setSetting, colors, accent, onAccent, haptic} = useSettings();
   const styles = makeStyles(colors);
-  const [name, setName] = useState(settings.userName);
+  const [firstName, setFirstName] = useState(settings.firstName);
+  const [lastName, setLastName] = useState(settings.lastName);
+  const [focused, setFocused] = useState<'first' | 'last' | null>(null);
 
-  const initials = name.trim()
-    ? name
-        .trim()
+  const fullName = `${firstName} ${lastName}`.trim();
+  const initials = fullName
+    ? fullName
         .split(' ')
         .map(w => w[0])
         .join('')
@@ -33,7 +35,11 @@ export default function EditProfileScreen() {
     : 'SC';
 
   const save = () => {
-    setSetting('userName', name.trim());
+    const fn = firstName.trim();
+    const ln = lastName.trim();
+    setSetting('firstName', fn);
+    setSetting('lastName', ln);
+    setSetting('userName', `${fn} ${ln}`.trim());
     haptic();
     navigation.goBack();
   };
@@ -55,12 +61,26 @@ export default function EditProfileScreen() {
 
         <Text style={styles.sectionLabel}>Prénom</Text>
         <TextInput
-          style={styles.field}
+          style={[styles.field, focused === 'first' && {borderColor: accent}]}
           placeholder="Ton prénom"
           placeholderTextColor={colors.text3}
-          value={name}
-          onChangeText={setName}
+          value={firstName}
+          onChangeText={setFirstName}
+          onFocus={() => setFocused('first')}
+          onBlur={() => setFocused(null)}
           autoFocus
+          returnKeyType="next"
+        />
+
+        <Text style={styles.sectionLabel}>Nom</Text>
+        <TextInput
+          style={[styles.field, focused === 'last' && {borderColor: accent}]}
+          placeholder="Ton nom"
+          placeholderTextColor={colors.text3}
+          value={lastName}
+          onChangeText={setLastName}
+          onFocus={() => setFocused('last')}
+          onBlur={() => setFocused(null)}
           returnKeyType="done"
           onSubmitEditing={save}
         />
@@ -77,36 +97,37 @@ export default function EditProfileScreen() {
 
 const makeStyles = (colors: Palette) =>
   StyleSheet.create({
-  container: {flex: 1, backgroundColor: colors.bg},
-  scroll: {flex: 1},
-  content: {padding: spacing.lg, paddingTop: spacing.md},
-  avatarWrap: {alignItems: 'center', marginVertical: spacing.xl},
-  avatar: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {fontSize: 32, fontWeight: '800'},
-  sectionLabel: {
-    fontSize: 12.5,
-    fontWeight: '800',
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-    color: colors.text3,
-    marginBottom: 10,
-  },
-  field: {
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: 15,
-    fontSize: 17,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  btnWrap: {marginTop: 36},
-});
+    container: {flex: 1, backgroundColor: colors.bg},
+    scroll: {flex: 1},
+    content: {padding: spacing.lg, paddingTop: spacing.md},
+    avatarWrap: {alignItems: 'center', marginVertical: spacing.xl},
+    avatar: {
+      width: 96,
+      height: 96,
+      borderRadius: 48,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    avatarText: {fontSize: 32, fontWeight: '800'},
+    sectionLabel: {
+      fontSize: 12.5,
+      fontWeight: '800',
+      letterSpacing: 0.6,
+      textTransform: 'uppercase',
+      color: colors.text3,
+      marginBottom: 10,
+      marginTop: spacing.md,
+    },
+    field: {
+      backgroundColor: colors.card,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      borderRadius: radius.md,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: 15,
+      fontSize: 17,
+      fontWeight: '600',
+      color: colors.text,
+    },
+    btnWrap: {marginTop: 36},
+  });

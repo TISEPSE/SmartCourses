@@ -16,19 +16,27 @@ export interface GroceryList {
   completedAt?: string;
 }
 
+export interface Ingredient {
+  /** Quantité pour `serves` personnes. Absente = non quantifiable (sel, poivre…). */
+  qty?: number;
+  /** Unité affichée après la quantité ('g', 'cl', 'c. à soupe'…). Vide pour les pièces. */
+  unit?: string;
+  /** Nom de l'ingrédient ('farine de sarrasin', 'œufs'…). */
+  name: string;
+}
+
 export interface Recipe {
   id: string;
   name: string;
   tag: string;
   time: number;
   kcal: number;
+  /** Nombre de personnes de référence pour les quantités d'ingrédients. */
   serves: number;
   fav: boolean;
-  ingredients: string[];
+  ingredients: Ingredient[];
   steps: string[];
-  /** Photo de référence (URL distante). Repli sur l'emoji si indisponible. */
-  image?: string;
-  /** Emoji affiché si l'image ne charge pas (hors-ligne, erreur réseau). */
+  /** Emoji de repli affiché si aucune photo locale n'est fournie. */
   emoji?: string;
 }
 
@@ -42,6 +50,7 @@ export type RootStackParamList = {
   Settings: undefined;
   Preferences: undefined;
   History: undefined;
+  Stats: undefined;
   EditProfile: undefined;
 };
 

@@ -13,6 +13,7 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 import {RootStackParamList, Recipe} from '../types';
 import {getRecipes} from '../storage';
+import {recipeImage} from '../assets/recipes';
 import {Palette, spacing, radius} from '../theme';
 import {AppBar, FoodImage, LargeHead} from '../components';
 import {useSettings} from '../context/SettingsContext';
@@ -65,7 +66,7 @@ export default function RecipesScreen() {
                   navigation.navigate('RecipeDetail', {recipeId: r.id})
                 }>
                 <FoodImage
-                  uri={r.image}
+                  source={recipeImage(r.id)}
                   emoji={r.emoji}
                   emojiSize={40}
                   style={styles.recipeThumb}
