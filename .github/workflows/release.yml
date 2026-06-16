@@ -60,28 +60,12 @@ jobs:
           mv android/app/build/outputs/apk/release/app-release.apk \
              android/app/build/outputs/apk/release/SmartCourses-${{ github.ref_name }}.apk
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: Smart Courses ${{ github.ref_name }}
-          body: |
-            ## Smart Courses ${{ github.ref_name }}
-
-            ### Android (recommandé)
-            1. Télécharge le fichier `.apk` ci-dessous
-            2. Sur ton téléphone Android : Paramètres → Sécurité → Autoriser les sources inconnues
-            3. Ouvre le fichier `.apk` pour installer
-
-            ### iOS (IPA non signé)
-            Le `.ipa` ci-dessous **n'est pas signé** : il n'est pas installable
-            directement. Il faut un outil de sideload (AltStore, Sideloadly…) avec
-            ton propre Apple ID. Pour une installation directe, un build signé via
-            un compte Apple Developer est nécessaire.
-
-            ---
-            *Build généré automatiquement depuis le tag `${{ github.ref_name }}`*
-          files: android/app/build/outputs/apk/release/SmartCourses-${{ github.ref_name }}.apk
-          fail_on_unmatched_files: true
+          name: android-apk
+          path: android/app/build/outputs/apk/release/SmartCourses-${{ github.ref_name }}.apk
+          if-no-files-found: error
 
   ios:
     # Démarre une fois la release Android créée, puis y attache l'IPA iOS.
@@ -158,8 +142,33 @@ jobs:
           ( cd build && zip -qr "SmartCourses-${{ github.ref_name }}.ipa" Payload )
           ls -lh "build/SmartCourses-${{ github.ref_name }}.ipa"
 
-      - name: Attach IPA to release
+      - name: Download APK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: android-apk
+          path: build
+
+      - name: Publish release (APK + IPA)
         uses: softprops/action-gh-release@v2
         with:
-          files: build/SmartCourses-${{ github.ref_name }}.ipa
+          name: Smart Courses ${{ github.ref_name }}
+          body: |
+            ## Smart Courses ${{ github.ref_name }}
+
+            ### Android (recommandé)
+            1. Télécharge le fichier `.apk` ci-dessous
+            2. Sur ton téléphone Android : Paramètres → Sécurité → Autoriser les sources inconnues
+            3. Ouvre le fichier `.apk` pour installer
+
+            ### iOS (IPA non signé)
+            Le `.ipa` ci-dessous **n'est pas signé** : il n'est pas installable
+            directement. Il faut un outil de sideload (AltStore, Sideloadly…) avec
+            ton propre Apple ID. Pour une installation directe, un build signé via
+            un compte Apple Developer est nécessaire.
+
+            ---
+            *Build généré automatiquement depuis le tag `${{ github.ref_name }}`*
+          files: |
+            build/SmartCourses-${{ github.ref_name }}.apk
+            build/SmartCourses-${{ github.ref_name }}.ipa
           fail_on_unmatched_files: true
