@@ -51,6 +51,7 @@ export type RootStackParamList = {
   Preferences: undefined;
   History: undefined;
   EditProfile: undefined;
+  Privacy: undefined;
 };
 
 export type TabParamList = {

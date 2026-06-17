@@ -395,9 +395,16 @@ export default function SettingsScreen() {
 
         <SectionLabel label="À propos" />
         <Card>
+          <Row
+            icon="shield-lock-outline"
+            title="Confidentialité"
+            subtitle="Vos données restent sur l'appareil"
+            onPress={() => navigation.navigate('Privacy')}
+          />
+          <Divider />
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Version</Text>
-            <Text style={styles.infoValue}>1.0.0</Text>
+            <Text style={styles.infoValue}>1.4.0</Text>
           </View>
         </Card>
 

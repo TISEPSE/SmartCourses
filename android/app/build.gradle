@@ -83,8 +83,8 @@ android {
         applicationId "com.smartcourses"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode 2
+        versionName "1.4.0"
     }
     signingConfigs {
         debug {
@@ -93,15 +93,27 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        // Clé de publication (Play Store). Les valeurs proviennent de variables
+        // (gradle.properties local ou secrets CI) — la keystore n'est JAMAIS
+        // commitée. Voir PLAYSTORE.md pour la génération et la configuration.
+        release {
+            if (project.hasProperty('SC_UPLOAD_STORE_FILE')) {
+                storeFile file(SC_UPLOAD_STORE_FILE)
+                storePassword SC_UPLOAD_STORE_PASSWORD
+                keyAlias SC_UPLOAD_KEY_ALIAS
+                keyPassword SC_UPLOAD_KEY_PASSWORD
+            }
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            // Signe avec la clé de publication si elle est fournie, sinon retombe
+            // sur la clé debug (builds de test/CI sans secrets) afin de ne rien
+            // casser. Un AAB destiné au Play Store DOIT être signé avec la vraie clé.
+            signingConfig project.hasProperty('SC_UPLOAD_STORE_FILE') ? signingConfigs.release : signingConfigs.debug
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
