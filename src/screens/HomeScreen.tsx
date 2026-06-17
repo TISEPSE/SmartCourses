@@ -1,11 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
-} from 'react-native';
+import {View, Text, ScrollView, StyleSheet} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -15,7 +9,7 @@ import {RootStackParamList} from '../types';
 import {getLists} from '../storage';
 import {GroceryList} from '../types';
 import {Palette, spacing, radius} from '../theme';
-import {Card, Progress, PillTag, SectionLabel, Btn} from '../components';
+import {Card, Progress, PillTag, SectionLabel, Btn, Touchable} from '../components';
 import {useSettings} from '../context/SettingsContext';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -50,11 +44,13 @@ export default function HomeScreen() {
       <View style={styles.appbarRow}>
         <View style={{width: 8}} />
         <Text style={styles.appTitle}>Smart Courses</Text>
-        <TouchableOpacity
+        <Touchable
           style={styles.iconBtn}
+          borderless
+          scaleTo={1}
           onPress={() => navigation.navigate('History')}>
           <Icon name="history" size={23} color={colors.text} />
-        </TouchableOpacity>
+        </Touchable>
       </View>
 
       <ScrollView
@@ -123,10 +119,9 @@ export default function HomeScreen() {
         <SectionLabel label="Actions rapides" />
         <View style={styles.quickActions}>
           {QUICK_ACTIONS.map(q => (
-            <TouchableOpacity
+            <Touchable
               key={q.label}
               style={styles.qaItem}
-              activeOpacity={0.7}
               onPress={() => {
                 if (q.screen) {
                   navigation.navigate(q.screen as any);
@@ -140,7 +135,7 @@ export default function HomeScreen() {
                 <Icon name={q.icon} size={23} color={colors.text} />
               </View>
               <Text style={styles.qaLabel}>{q.label}</Text>
-            </TouchableOpacity>
+            </Touchable>
           ))}
         </View>
 
@@ -158,9 +153,9 @@ export default function HomeScreen() {
                     {i > 0 && (
                       <View style={styles.divider} />
                     )}
-                    <TouchableOpacity
+                    <Touchable
                       style={styles.listRow}
-                      activeOpacity={0.7}
+                      scaleTo={1}
                       onPress={() =>
                         navigation.navigate('Shopping', {listId: l.id})
                       }>
@@ -171,7 +166,7 @@ export default function HomeScreen() {
                         </Text>
                       </View>
                       <Text style={styles.listRowPct}>{p}%</Text>
-                    </TouchableOpacity>
+                    </Touchable>
                   </React.Fragment>
                 );
               })}

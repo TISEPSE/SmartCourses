@@ -26,7 +26,7 @@ interface MonthStat {
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
-  const {settings, colors, accent, accentSoft, onAccent} = useSettings();
+  const {settings, colors, accent, onAccent} = useSettings();
   const styles = makeStyles(colors);
   const [lists, setLists] = useState<GroceryList[]>([]);
 
@@ -102,34 +102,42 @@ export default function ProfileScreen() {
 
         {/* Budget mensuel */}
         <SectionLabel label="Budget" />
-        <Card style={[styles.hero, {backgroundColor: accentSoft}]}>
-          <Text style={[styles.heroLabel, {color: accent}]}>
-            {capitalize(currentMonth.label)}
-          </Text>
-          <Text style={[styles.heroValue, {color: accent}]}>
+        <Card style={[styles.hero, {backgroundColor: accent}]}>
+          <View style={styles.heroTop}>
+            <Text style={[styles.heroLabel, {color: onAccent}]}>
+              {capitalize(currentMonth.label)}
+            </Text>
+            <Icon
+              name="wallet-outline"
+              size={22}
+              color={onAccent}
+              style={{opacity: 0.85}}
+            />
+          </View>
+          <Text style={[styles.heroValue, {color: onAccent}]}>
             {euro(currentMonth.total)}
           </Text>
-          <Text style={[styles.heroSub, {color: accent}]}>
+          <Text style={[styles.heroSub, {color: onAccent}]}>
             {currentMonth.count} course{currentMonth.count > 1 ? 's' : ''} ce mois-ci
           </Text>
         </Card>
 
-        <View style={styles.statsRow}>
-          <Card style={styles.statCard}>
+        <Card style={styles.statsCard}>
+          <View style={styles.statCol}>
             <Text style={[styles.statValue, {color: accent}]}>{count}</Text>
-            <Text style={styles.statLabel}>
-              Course{count > 1 ? 's' : ''} terminée{count > 1 ? 's' : ''}
-            </Text>
-          </Card>
-          <Card style={styles.statCard}>
+            <Text style={styles.statLabel}>Terminées</Text>
+          </View>
+          <View style={styles.statSep} />
+          <View style={styles.statCol}>
             <Text style={[styles.statValue, {color: accent}]}>{euro(total)}</Text>
-            <Text style={styles.statLabel}>Total dépensé</Text>
-          </Card>
-          <Card style={styles.statCard}>
+            <Text style={styles.statLabel}>Total</Text>
+          </View>
+          <View style={styles.statSep} />
+          <View style={styles.statCol}>
             <Text style={[styles.statValue, {color: accent}]}>{euro(avg)}</Text>
-            <Text style={styles.statLabel}>Moyenne / course</Text>
-          </Card>
-        </View>
+            <Text style={styles.statLabel}>Moyenne</Text>
+          </View>
+        </Card>
 
         {months.length > 0 && (
           <>
@@ -223,35 +231,40 @@ const makeStyles = (colors: Palette) =>
       borderWidth: 0,
       marginBottom: spacing.md,
     },
+    heroTop: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
     heroLabel: {
       fontSize: 13,
       fontWeight: '800',
       textTransform: 'uppercase',
       letterSpacing: 0.6,
-      opacity: 0.9,
+      opacity: 0.85,
     },
     heroValue: {
-      fontSize: 32,
+      fontSize: 36,
       fontWeight: '900',
       letterSpacing: -1,
-      marginTop: 4,
+      marginTop: 6,
     },
-    heroSub: {fontSize: 13.5, fontWeight: '700', marginTop: 2, opacity: 0.9},
-    statsRow: {flexDirection: 'row', gap: 10},
-    statCard: {
-      flex: 1,
-      padding: spacing.md,
+    heroSub: {fontSize: 13.5, fontWeight: '700', marginTop: 2, opacity: 0.85},
+    statsCard: {
+      flexDirection: 'row',
       alignItems: 'center',
-      gap: 4,
+      paddingVertical: spacing.lg,
+      marginBottom: spacing.md,
     },
+    statCol: {flex: 1, alignItems: 'center', gap: 4, paddingHorizontal: 4},
+    statSep: {width: 1, height: 34, backgroundColor: colors.borderSoft},
     statValue: {
-      fontSize: 17,
+      fontSize: 18,
       fontWeight: '800',
-      color: colors.text,
       letterSpacing: -0.5,
     },
     statLabel: {
-      fontSize: 11.5,
+      fontSize: 12,
       fontWeight: '700',
       color: colors.text2,
       textAlign: 'center',

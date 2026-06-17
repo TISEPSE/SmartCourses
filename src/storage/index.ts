@@ -5,8 +5,8 @@ import {EXAMPLE_RECIPES} from '../data/recipes';
 const KEYS = {
   lists: '@sc_lists',
   recipes: '@sc_recipes',
-  // v2 : ingrédients structurés (quantité + unité + nom) + photos locales.
-  recipesSeeded: '@sc_recipes_seeded_v2',
+  // v3 : ajout d'un lot de recettes faciles (jambon pâtes, riz thon, croque…).
+  recipesSeeded: '@sc_recipes_seeded_v3',
 };
 
 const EXAMPLE_IDS = new Set(EXAMPLE_RECIPES.map(r => r.id));

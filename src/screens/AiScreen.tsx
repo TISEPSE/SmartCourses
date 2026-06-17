@@ -18,8 +18,8 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import {RootStackParamList, GroceryList} from '../types';
 import {getLists, saveLists} from '../storage';
-import {Palette, spacing, radius} from '../theme';
-import {AppBar} from '../components';
+import {Palette, spacing, radius, withAlpha} from '../theme';
+import {AppBar, Touchable} from '../components';
 import {useSettings} from '../context/SettingsContext';
 import {
   AiError,
@@ -217,14 +217,15 @@ export default function AiScreen() {
           <Text style={styles.emptySub}>
             Connecte ton serveur IA pour générer des listes et discuter cuisine.
           </Text>
-          <TouchableOpacity
+          <Touchable
             style={[styles.cfgBtn, {backgroundColor: accent}]}
+            rippleColor={withAlpha(onAccent, 0.2)}
             onPress={() => navigation.navigate('Settings')}>
             <Icon name="cog" size={18} color={onAccent} />
             <Text style={[styles.cfgBtnText, {color: onAccent}]}>
               Configurer dans les Paramètres
             </Text>
-          </TouchableOpacity>
+          </Touchable>
         </View>
       </View>
     );
@@ -254,13 +255,14 @@ export default function AiScreen() {
               Demande une liste ou pose une question
             </Text>
             {SUGGESTIONS.map(s => (
-              <TouchableOpacity
+              <Touchable
                 key={s}
                 style={styles.suggestChip}
+                scaleTo={0.98}
                 onPress={() => setInput(s)}>
                 <Icon name="lightbulb-outline" size={16} color={colors.text2} />
                 <Text style={styles.suggestChipText}>{s}</Text>
-              </TouchableOpacity>
+              </Touchable>
             ))}
           </View>
         )}
@@ -276,14 +278,15 @@ export default function AiScreen() {
                     <Text style={styles.listItemText}>{it}</Text>
                   </View>
                 ))}
-                <TouchableOpacity
+                <Touchable
                   style={[styles.createBtn, {backgroundColor: accent}]}
+                  rippleColor={withAlpha(onAccent, 0.2)}
                   onPress={() => createList(b.list as GeneratedList)}>
                   <Icon name="cart-plus" size={18} color={onAccent} />
                   <Text style={[styles.createBtnText, {color: onAccent}]}>
                     Créer la liste
                   </Text>
-                </TouchableOpacity>
+                </Touchable>
               </View>
             );
           }
@@ -329,11 +332,13 @@ export default function AiScreen() {
           editable={!loading}
           multiline
         />
-        <TouchableOpacity
+        <Touchable
           style={[
             styles.sendBtn,
             {backgroundColor: input.trim() && !loading ? accent : colors.card},
           ]}
+          scaleTo={0.9}
+          rippleColor={withAlpha(onAccent, 0.2)}
           onPress={send}
           disabled={!input.trim() || loading}>
           <Icon
@@ -341,7 +346,7 @@ export default function AiScreen() {
             size={22}
             color={input.trim() && !loading ? onAccent : colors.text3}
           />
-        </TouchableOpacity>
+        </Touchable>
       </View>
     </KeyboardAvoidingView>
   );

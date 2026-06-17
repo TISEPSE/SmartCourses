@@ -1,20 +1,15 @@
 import React, {useEffect, useState} from 'react';
-import {
-  Alert,
-  View,
-  Text,
-  ScrollView,
-  StyleSheet,
-} from 'react-native';
+import {View, Text, ScrollView, StyleSheet} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 import {RootStackParamList, GroceryList} from '../types';
-import {getLists, deleteList} from '../storage';
+import {getLists, deleteList, saveLists} from '../storage';
 import {Palette, spacing, radius} from '../theme';
 import {AppBar, LargeHead, Progress, Fab, SwipeRow} from '../components';
 import {useSettings} from '../context/SettingsContext';
+import {useSnackbar} from '../context/SnackbarContext';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -82,6 +77,7 @@ export default function GroceryScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const {settings, colors, haptic} = useSettings();
+  const {show: showSnackbar} = useSnackbar();
   const styles = makeStyles(colors);
   const [lists, setLists] = useState<GroceryList[]>([]);
 
@@ -95,24 +91,24 @@ export default function GroceryScreen() {
   const activeLists = lists.filter(l => !l.completedAt);
   const completedLists = lists.filter(l => !!l.completedAt);
 
-  const handleDelete = (l: GroceryList) => {
-    const doDelete = async () => {
-      haptic();
-      await deleteList(l.id);
-      setLists(prev => prev.filter(item => item.id !== l.id));
-    };
+  const handleDelete = async (l: GroceryList) => {
+    // Suppression immédiate + possibilité d'annuler via le snackbar (façon
+    // Material), au lieu d'une pop-up de confirmation bloquante.
+    haptic();
+    await deleteList(l.id);
+    setLists(prev => prev.filter(item => item.id !== l.id));
     if (!settings.confirmDelete) {
-      doDelete();
       return;
     }
-    Alert.alert(
-      'Supprimer la liste',
-      `Supprimer "${l.name}" ? Cette action est irréversible.`,
-      [
-        {text: 'Annuler', style: 'cancel'},
-        {text: 'Supprimer', style: 'destructive', onPress: doDelete},
-      ],
-    );
+    showSnackbar({
+      message: `« ${l.name} » supprimée`,
+      actionLabel: 'Annuler',
+      onAction: async () => {
+        const existing = await getLists();
+        await saveLists([l, ...existing]);
+        setLists(await getLists());
+      },
+    });
   };
 
   return (

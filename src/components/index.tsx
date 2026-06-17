@@ -1,7 +1,9 @@
-import React, {useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {
   View,
   Text,
+  TextInput,
+  TextInputProps,
   TouchableOpacity,
   StyleSheet,
   ViewStyle,
@@ -9,14 +11,92 @@ import {
   ImageSourcePropType,
   StyleProp,
   ActivityIndicator,
+  Animated,
   Modal,
   ScrollView,
   Pressable,
   Image,
+  GestureResponderEvent,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import {Palette, PALETTES, ThemeName, radius, spacing} from '../theme';
+import {Palette, PALETTES, ThemeName, radius, spacing, withAlpha} from '../theme';
 import {useSettings} from '../context/SettingsContext';
+
+// ── Touchable (Material) ────────────────────────────────
+// Brique tactile « façon Android » : effet ripple natif + animation
+// d'enfoncement (scale spring). Remplace TouchableOpacity partout pour
+// donner le ressenti Material. Le ripple est clippé aux coins arrondis via
+// le borderRadius extrait du style.
+interface TouchableProps {
+  children: React.ReactNode;
+  onPress?: (e: GestureResponderEvent) => void;
+  onLongPress?: () => void;
+  style?: StyleProp<ViewStyle>;
+  /** Couleur du ripple. Défaut : teinte du texte à 12 %. */
+  rippleColor?: string;
+  /** Ripple non borné (idéal pour les boutons-icônes circulaires). */
+  borderless?: boolean;
+  /** Échelle cible à l'enfoncement (défaut 0.97). 1 = pas d'animation. */
+  scaleTo?: number;
+  disabled?: boolean;
+}
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+export function Touchable({
+  children,
+  onPress,
+  onLongPress,
+  style,
+  rippleColor,
+  borderless = false,
+  scaleTo = 0.97,
+  disabled,
+}: TouchableProps) {
+  const {colors} = useSettings();
+  const scale = useRef(new Animated.Value(1)).current;
+
+  const pressIn = () => {
+    if (scaleTo === 1) {
+      return;
+    }
+    Animated.spring(scale, {
+      toValue: scaleTo,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 0,
+    }).start();
+  };
+  const pressOut = () => {
+    if (scaleTo === 1) {
+      return;
+    }
+    Animated.spring(scale, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 40,
+      bounciness: 6,
+    }).start();
+  };
+
+  // Le style (largeur, marges, radius, position…) reste sur le Pressable
+  // lui-même pour ne pas casser le layout du parent. Le ripple est clippé
+  // aux coins arrondis via overflow:'hidden' (sauf ripple borderless).
+  return (
+    <AnimatedPressable
+      onPress={onPress}
+      onLongPress={onLongPress}
+      onPressIn={pressIn}
+      onPressOut={pressOut}
+      disabled={disabled}
+      android_ripple={{
+        color: rippleColor ?? withAlpha(colors.text, 0.12),
+        borderless,
+      }}
+      style={[style, {transform: [{scale}]}]}>
+      {children}
+    </AnimatedPressable>
+  );
+}
 
 // ── AppBar ──────────────────────────────────────────────
 interface AppBarProps {
@@ -31,9 +111,9 @@ export function AppBar({title, onBack, actions, right}: AppBarProps) {
   return (
     <View style={styles.appbar}>
       {onBack ? (
-        <TouchableOpacity style={styles.iconBtn} onPress={onBack}>
+        <Touchable style={styles.iconBtn} onPress={onBack} borderless scaleTo={1}>
           <Icon name="arrow-left" size={24} color={colors.text} />
-        </TouchableOpacity>
+        </Touchable>
       ) : (
         <View style={{width: 8}} />
       )}
@@ -42,9 +122,9 @@ export function AppBar({title, onBack, actions, right}: AppBarProps) {
       </Text>
       {right}
       {(actions ?? []).map((a, i) => (
-        <TouchableOpacity key={i} style={styles.iconBtn} onPress={a.onPress}>
+        <Touchable key={i} style={styles.iconBtn} onPress={a.onPress} borderless scaleTo={1}>
           <Icon name={a.icon} size={23} color={colors.text} />
-        </TouchableOpacity>
+        </Touchable>
       ))}
     </View>
   );
@@ -78,13 +158,12 @@ export function Card({children, style, onPress, onLongPress}: CardProps) {
   const styles = makeStyles(colors);
   if (onPress || onLongPress) {
     return (
-      <TouchableOpacity
+      <Touchable
         style={[styles.card, style]}
         onPress={onPress}
-        onLongPress={onLongPress}
-        activeOpacity={0.7}>
+        onLongPress={onLongPress}>
         {children}
-      </TouchableOpacity>
+      </Touchable>
     );
   }
   return <View style={[styles.card, style]}>{children}</View>;
@@ -119,9 +198,9 @@ export function Row({icon, title, subtitle, trail, onPress}: RowProps) {
   );
   if (onPress) {
     return (
-      <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
+      <Touchable onPress={onPress} scaleTo={1}>
         {content}
-      </TouchableOpacity>
+      </Touchable>
     );
   }
   return content;
@@ -158,12 +237,16 @@ export function Btn({
     variant === 'primary' ? {color: onAccent} : styles.btnTextTonal;
   const height = small ? 36 : 44;
   const iconColor = variant === 'primary' ? onAccent : colors.text;
+  const ripple =
+    variant === 'primary'
+      ? withAlpha(onAccent, 0.2)
+      : withAlpha(colors.text, 0.12);
 
   return (
-    <TouchableOpacity
+    <Touchable
       style={[styles.btn, btnStyle, {height}, style]}
       onPress={onPress}
-      activeOpacity={0.7}>
+      rippleColor={ripple}>
       {loading ? (
         <ActivityIndicator
           size="small"
@@ -175,7 +258,7 @@ export function Btn({
           <Text style={[styles.btnText, textStyle]}>{children}</Text>
         </>
       )}
-    </TouchableOpacity>
+    </Touchable>
   );
 }
 
@@ -190,10 +273,10 @@ export function Chip({children, on, onPress, icon}: ChipProps) {
   const {colors, accent, onAccent} = useSettings();
   const styles = makeStyles(colors);
   return (
-    <TouchableOpacity
+    <Touchable
       style={[styles.chip, on && {backgroundColor: accent, borderColor: accent}]}
       onPress={onPress}
-      activeOpacity={0.7}>
+      rippleColor={on ? withAlpha(onAccent, 0.2) : withAlpha(colors.text, 0.12)}>
       {icon && (
         <Icon
           name={icon}
@@ -203,7 +286,7 @@ export function Chip({children, on, onPress, icon}: ChipProps) {
         />
       )}
       <Text style={[styles.chipText, on && {color: onAccent}]}>{children}</Text>
-    </TouchableOpacity>
+    </Touchable>
   );
 }
 
@@ -279,13 +362,18 @@ export function Fab({icon, label, onPress}: FabProps) {
   const {colors, accent, onAccent} = useSettings();
   const styles = makeStyles(colors);
   return (
-    <TouchableOpacity
-      style={[styles.fab, {backgroundColor: accent}]}
-      onPress={onPress}
-      activeOpacity={0.8}>
-      <Icon name={icon} size={22} color={onAccent} />
-      {label && <Text style={[styles.fabLabel, {color: onAccent}]}>{label}</Text>}
-    </TouchableOpacity>
+    <View style={styles.fabWrap}>
+      <Touchable
+        style={[styles.fab, {backgroundColor: accent}]}
+        onPress={onPress}
+        scaleTo={0.93}
+        rippleColor={withAlpha(onAccent, 0.2)}>
+        <Icon name={icon} size={22} color={onAccent} />
+        {label && (
+          <Text style={[styles.fabLabel, {color: onAccent}]}>{label}</Text>
+        )}
+      </Touchable>
+    </View>
   );
 }
 
@@ -301,9 +389,10 @@ export function ThemePicker() {
         const p = PALETTES[name];
         const on = settings.theme === name;
         return (
-          <TouchableOpacity
+          <Touchable
             key={name}
-            activeOpacity={0.85}
+            scaleTo={0.98}
+            rippleColor={withAlpha(p.accent, 0.16)}
             style={[
               styles.themeCard,
               {backgroundColor: p.card, borderColor: on ? p.accent : p.border},
@@ -328,7 +417,7 @@ export function ThemePicker() {
               ]}>
               {on && <Icon name="check" size={16} color={p.onAccent} />}
             </View>
-          </TouchableOpacity>
+          </Touchable>
         );
       })}
     </View>
@@ -387,9 +476,9 @@ export function Select({value, options, placeholder, onChange}: SelectProps) {
 
   return (
     <>
-      <TouchableOpacity
+      <Touchable
         style={styles.selectBox}
-        activeOpacity={0.7}
+        scaleTo={1}
         onPress={() => setOpen(true)}>
         <Text
           style={[styles.selectValue, !current && {color: colors.text3}]}
@@ -397,7 +486,7 @@ export function Select({value, options, placeholder, onChange}: SelectProps) {
           {current?.label ?? value ?? placeholder ?? 'Choisir…'}
         </Text>
         <Icon name="chevron-down" size={20} color={colors.text3} />
-      </TouchableOpacity>
+      </Touchable>
 
       <Modal
         visible={open}
@@ -411,10 +500,10 @@ export function Select({value, options, placeholder, onChange}: SelectProps) {
               {options.map(o => {
                 const on = o.value === value;
                 return (
-                  <TouchableOpacity
+                  <Touchable
                     key={o.value}
                     style={styles.selectOption}
-                    activeOpacity={0.7}
+                    scaleTo={1}
                     onPress={() => {
                       haptic();
                       onChange(o.value);
@@ -431,7 +520,7 @@ export function Select({value, options, placeholder, onChange}: SelectProps) {
                       {o.sub && <Text style={styles.selectOptionSub}>{o.sub}</Text>}
                     </View>
                     {on && <Icon name="check" size={20} color={accent} />}
-                  </TouchableOpacity>
+                  </Touchable>
                 );
               })}
             </ScrollView>
@@ -439,6 +528,70 @@ export function Select({value, options, placeholder, onChange}: SelectProps) {
         </Pressable>
       </Modal>
     </>
+  );
+}
+
+// ── Field (champ Material) ──────────────────────────────
+// Champ de saisie « rempli » façon Material 3 : fond teinté, soulignement qui
+// passe à l'accent (2 px) au focus, et label qui flotte vers le haut dès qu'on
+// tape ou que le champ est rempli.
+interface FieldProps extends Omit<TextInputProps, 'style'> {
+  label: string;
+  value: string;
+  containerStyle?: StyleProp<ViewStyle>;
+}
+export function Field({label, value, onFocus, onBlur, containerStyle, ...rest}: FieldProps) {
+  const {colors, accent} = useSettings();
+  const styles = makeStyles(colors);
+  const [focused, setFocused] = useState(false);
+  const floated = focused || (value ?? '').length > 0;
+  const anim = useRef(new Animated.Value(floated ? 1 : 0)).current;
+
+  useEffect(() => {
+    Animated.timing(anim, {
+      toValue: floated ? 1 : 0,
+      duration: 150,
+      useNativeDriver: false,
+    }).start();
+  }, [floated, anim]);
+
+  return (
+    <View
+      style={[
+        styles.fieldBox,
+        {
+          borderBottomColor: focused ? accent : colors.text3,
+          borderBottomWidth: focused ? 2 : 1,
+        },
+        containerStyle,
+      ]}>
+      <Animated.Text
+        pointerEvents="none"
+        style={[
+          styles.fieldFloatLabel,
+          {
+            top: anim.interpolate({inputRange: [0, 1], outputRange: [19, 8]}),
+            fontSize: anim.interpolate({inputRange: [0, 1], outputRange: [16, 12]}),
+            color: focused ? accent : colors.text2,
+          },
+        ]}>
+        {label}
+      </Animated.Text>
+      <TextInput
+        style={styles.fieldTextInput}
+        value={value}
+        placeholderTextColor={colors.text3}
+        onFocus={e => {
+          setFocused(true);
+          onFocus?.(e);
+        }}
+        onBlur={e => {
+          setFocused(false);
+          onBlur?.(e);
+        }}
+        {...rest}
+      />
+    </View>
   );
 }
 
@@ -470,6 +623,27 @@ const makeStyles = (colors: Palette) =>
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: colors.cardHi,
+    },
+    fieldBox: {
+      backgroundColor: colors.cardHi,
+      borderTopLeftRadius: radius.sm,
+      borderTopRightRadius: radius.sm,
+      paddingHorizontal: spacing.md,
+      height: 58,
+      justifyContent: 'flex-end',
+      paddingBottom: 8,
+    },
+    fieldFloatLabel: {
+      position: 'absolute',
+      left: spacing.md,
+      fontWeight: '600',
+    },
+    fieldTextInput: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: colors.text,
+      padding: 0,
+      height: 24,
     },
     selectBox: {
       flexDirection: 'row',
@@ -529,8 +703,8 @@ const makeStyles = (colors: Palette) =>
     },
     appbarTitle: {
       flex: 1,
-      fontSize: 17,
-      fontWeight: '700',
+      fontSize: 20,
+      fontFamily: 'sans-serif-medium',
       color: colors.text,
       marginHorizontal: spacing.sm,
     },
@@ -547,10 +721,10 @@ const makeStyles = (colors: Palette) =>
       paddingBottom: spacing.md,
     },
     largeHeadTitle: {
-      fontSize: 28,
-      fontWeight: '800',
+      fontSize: 30,
+      fontFamily: 'sans-serif-medium',
       color: colors.text,
-      letterSpacing: -0.5,
+      letterSpacing: 0,
     },
     largeHeadSub: {
       fontSize: 14,
@@ -563,6 +737,13 @@ const makeStyles = (colors: Palette) =>
       borderRadius: radius.lg,
       borderWidth: 1,
       borderColor: colors.border,
+      // Élévation Material : ombre portée douce (très visible en thème clair,
+      // discrète sur les thèmes sombres où la couleur de surface fait le relief).
+      elevation: 2,
+      shadowColor: '#000',
+      shadowOpacity: 0.1,
+      shadowRadius: 6,
+      shadowOffset: {width: 0, height: 2},
     },
     row: {
       flexDirection: 'row',
@@ -589,8 +770,8 @@ const makeStyles = (colors: Palette) =>
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      borderRadius: radius.md,
-      gap: 6,
+      borderRadius: 999,
+      gap: 8,
       width: '100%',
     },
     btnPrimary: {backgroundColor: colors.text},
@@ -660,10 +841,18 @@ const makeStyles = (colors: Palette) =>
       backgroundColor: colors.borderSoft,
       marginHorizontal: spacing.lg,
     },
-    fab: {
+    fabWrap: {
       position: 'absolute',
       bottom: 24,
       right: 20,
+      borderRadius: 18,
+      elevation: 6,
+      shadowColor: '#000',
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      shadowOffset: {width: 0, height: 4},
+    },
+    fab: {
       flexDirection: 'row',
       alignItems: 'center',
       backgroundColor: colors.text,
@@ -671,7 +860,6 @@ const makeStyles = (colors: Palette) =>
       paddingHorizontal: 18,
       height: 52,
       gap: 8,
-      elevation: 4,
     },
     fabLabel: {
       fontSize: 15,

@@ -5,14 +5,13 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
-import {Palette, spacing, radius} from '../theme';
-import {AppBar, Btn} from '../components';
+import {Palette, spacing} from '../theme';
+import {AppBar, Btn, Field} from '../components';
 import {useSettings} from '../context/SettingsContext';
 
 export default function EditProfileScreen() {
@@ -22,7 +21,6 @@ export default function EditProfileScreen() {
   const styles = makeStyles(colors);
   const [firstName, setFirstName] = useState(settings.firstName);
   const [lastName, setLastName] = useState(settings.lastName);
-  const [focused, setFocused] = useState<'first' | 'last' | null>(null);
 
   const fullName = `${firstName} ${lastName}`.trim();
   const initials = fullName
@@ -59,30 +57,21 @@ export default function EditProfileScreen() {
           </View>
         </View>
 
-        <Text style={styles.sectionLabel}>Prénom</Text>
-        <TextInput
-          style={[styles.field, focused === 'first' && {borderColor: accent}]}
-          placeholder="Ton prénom"
-          placeholderTextColor={colors.text3}
+        <Field
+          label="Prénom"
           value={firstName}
           onChangeText={setFirstName}
-          onFocus={() => setFocused('first')}
-          onBlur={() => setFocused(null)}
           autoFocus
           returnKeyType="next"
+          containerStyle={styles.fieldSpace}
         />
-
-        <Text style={styles.sectionLabel}>Nom</Text>
-        <TextInput
-          style={[styles.field, focused === 'last' && {borderColor: accent}]}
-          placeholder="Ton nom"
-          placeholderTextColor={colors.text3}
+        <Field
+          label="Nom"
           value={lastName}
           onChangeText={setLastName}
-          onFocus={() => setFocused('last')}
-          onBlur={() => setFocused(null)}
           returnKeyType="done"
           onSubmitEditing={save}
+          containerStyle={styles.fieldSpace}
         />
 
         <View style={styles.btnWrap}>
@@ -109,25 +98,6 @@ const makeStyles = (colors: Palette) =>
       justifyContent: 'center',
     },
     avatarText: {fontSize: 32, fontWeight: '800'},
-    sectionLabel: {
-      fontSize: 12.5,
-      fontWeight: '800',
-      letterSpacing: 0.6,
-      textTransform: 'uppercase',
-      color: colors.text3,
-      marginBottom: 10,
-      marginTop: spacing.md,
-    },
-    field: {
-      backgroundColor: colors.card,
-      borderWidth: 1.5,
-      borderColor: colors.border,
-      borderRadius: radius.md,
-      paddingHorizontal: spacing.lg,
-      paddingVertical: 15,
-      fontSize: 17,
-      fontWeight: '600',
-      color: colors.text,
-    },
+    fieldSpace: {marginTop: spacing.md},
     btnWrap: {marginTop: 36},
   });

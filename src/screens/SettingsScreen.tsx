@@ -4,7 +4,6 @@ import {
   View,
   Text,
   ScrollView,
-  TextInput,
   TouchableOpacity,
   Linking,
   StyleSheet,
@@ -18,7 +17,7 @@ import {RootStackParamList} from '../types';
 import {clearHistory, resetAllData} from '../storage';
 import {AI_PROVIDERS, getProvider} from '../config/providers';
 import {ProviderBadge} from '../assets/logos';
-import {Palette, PALETTES, ThemeName, spacing, radius} from '../theme';
+import {Palette, PALETTES, ThemeName, spacing, radius, withAlpha} from '../theme';
 import {
   AppBar,
   AppSwitch,
@@ -28,6 +27,8 @@ import {
   Row,
   Select,
   SelectOption,
+  Touchable,
+  Field,
 } from '../components';
 import {useSettings} from '../context/SettingsContext';
 
@@ -46,17 +47,14 @@ interface FieldRowProps {
   keyboardType?: 'default' | 'url';
 }
 
-function FieldRow({label, value, placeholder, onChange, secure, keyboardType}: FieldRowProps) {
+function FieldRow({label, value, onChange, secure, keyboardType}: FieldRowProps) {
   const {colors} = useSettings();
   const styles = makeStyles(colors);
   return (
     <View style={styles.fieldRow}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <TextInput
-        style={styles.fieldInput}
+      <Field
+        label={label}
         value={value}
-        placeholder={placeholder}
-        placeholderTextColor={colors.text3}
         onChangeText={onChange}
         secureTextEntry={secure}
         autoCapitalize="none"
@@ -231,9 +229,10 @@ export default function SettingsScreen() {
         {AI_PROVIDERS.map(p => {
           const on = settings.aiProvider === p.id;
           return (
-            <TouchableOpacity
+            <Touchable
               key={p.id}
-              activeOpacity={0.85}
+              scaleTo={0.98}
+              rippleColor={withAlpha(accent, 0.16)}
               style={[styles.choice, on && styles.choiceOn]}
               onPress={() => changeProvider(p.id)}>
               <ProviderBadge
@@ -250,11 +249,12 @@ export default function SettingsScreen() {
                 size={22}
                 color={on ? accent : colors.text3}
               />
-            </TouchableOpacity>
+            </Touchable>
           );
         })}
-        <TouchableOpacity
-          activeOpacity={0.85}
+        <Touchable
+          scaleTo={0.98}
+          rippleColor={withAlpha(accent, 0.16)}
           style={[styles.choice, settings.aiProvider === '' && styles.choiceOn]}
           onPress={() => changeProvider('')}>
           <View style={[styles.logo, {backgroundColor: colors.cardHi}]}>
@@ -269,7 +269,7 @@ export default function SettingsScreen() {
             size={22}
             color={settings.aiProvider === '' ? accent : colors.text3}
           />
-        </TouchableOpacity>
+        </Touchable>
 
         {(isCloud || provider?.id === 'custom') && (
           <Card style={styles.aiFieldsCard}>
@@ -308,14 +308,13 @@ export default function SettingsScreen() {
                   }}
                 />
                 {showCustomModel && (
-                  <TextInput
-                    style={[styles.fieldInput, {marginTop: 10}]}
+                  <Field
+                    label="Nom du modèle"
                     value={settings.aiModel}
-                    placeholder="nom du modèle"
-                    placeholderTextColor={colors.text3}
                     onChangeText={v => setSetting('aiModel', v)}
                     autoCapitalize="none"
                     autoCorrect={false}
+                    containerStyle={styles.modelFieldSpace}
                   />
                 )}
               </View>
@@ -475,6 +474,7 @@ const makeStyles = (colors: Palette) =>
     lineHeight: 17,
   },
   aiFieldsCard: {marginTop: spacing.xs},
+  modelFieldSpace: {marginTop: 10},
   fieldInput: {
     backgroundColor: colors.bg,
     borderWidth: 1,

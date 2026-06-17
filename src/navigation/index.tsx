@@ -1,8 +1,8 @@
 import React from 'react';
-import {Dimensions, Easing, View} from 'react-native';
+import {Animated, Dimensions, Easing, View} from 'react-native';
 import {
   createStackNavigator,
-  CardStyleInterpolators,
+  StackCardStyleInterpolator,
 } from '@react-navigation/stack';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -39,12 +39,63 @@ const slideTimingSpec = {
   config: {duration: TRANSITION_DURATION, easing: TRANSITION_EASING},
 };
 
+// Transition « shared axis X » de Material Design : l'écran entrant glisse
+// d'un petit décalage + fondu, l'écran sortant glisse en sens inverse +
+// fondu. Plus discret et plus « Android » que le slide plein écran iOS.
+const SHARED_AXIS_DIST = 30;
+const forMaterialSharedAxisX: StackCardStyleInterpolator = ({
+  current,
+  next,
+}) => {
+  const progress = Animated.add(
+    current.progress.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0, 1],
+      extrapolate: 'clamp',
+    }),
+    next
+      ? next.progress.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, 1],
+          extrapolate: 'clamp',
+        })
+      : 0,
+  );
+
+  return {
+    cardStyle: {
+      transform: [
+        {
+          translateX: progress.interpolate({
+            inputRange: [0, 1, 2],
+            outputRange: [SHARED_AXIS_DIST, 0, -SHARED_AXIS_DIST],
+          }),
+        },
+      ],
+      opacity: progress.interpolate({
+        inputRange: [0, 0.35, 1, 1.65, 2],
+        outputRange: [0, 1, 1, 0, 0],
+      }),
+    },
+  };
+};
+
+// Variantes « outline » (état inactif) façon Material 3 : l'onglet actif est
+// plein, les autres sont en contour.
+const TAB_ICONS: Record<string, {on: string; off: string}> = {
+  Home: {on: 'home', off: 'home-outline'},
+  Grocery: {on: 'cart', off: 'cart-outline'},
+  AI: {on: 'auto-fix', off: 'auto-fix'},
+  Recipes: {on: 'book-open-variant', off: 'book-open-outline'},
+  Profile: {on: 'account', off: 'account-outline'},
+};
+
 function Tabs() {
   const insets = useSafeAreaInsets();
-  const {accent, colors} = useSettings();
+  const {accent, accentSoft, colors} = useSettings();
   // Barre légèrement remontée : on relève le contenu (icônes + libellés)
   // au-dessus du bord bas via un padding inférieur un peu plus généreux.
-  const tabBarHeight = 70 + insets.bottom;
+  const tabBarHeight = 74 + insets.bottom;
 
   return (
     <Tab.Navigator
@@ -70,26 +121,31 @@ function Tabs() {
         }),
         sceneStyle: {backgroundColor: colors.bg},
         tabBarStyle: {
-          backgroundColor: colors.card,
+          backgroundColor: colors.surface,
           borderTopColor: colors.border,
           borderTopWidth: 1,
           height: tabBarHeight,
-          paddingBottom: insets.bottom + 14,
-          paddingTop: 8,
+          paddingBottom: insets.bottom + 12,
+          paddingTop: 10,
         },
         tabBarActiveTintColor: accent,
         tabBarInactiveTintColor: colors.text3,
-        tabBarLabelStyle: {fontSize: 11, fontWeight: '700'},
-        tabBarIcon: ({color, size}) => {
-          const icons: Record<string, string> = {
-            Home: 'home',
-            Grocery: 'cart',
-            AI: 'auto-fix',
-            Recipes: 'book-open-variant',
-            Profile: 'account',
-          };
+        tabBarLabelStyle: {fontSize: 11.5, fontWeight: '700', marginTop: 2},
+        tabBarIcon: ({focused, color}) => {
+          const set = TAB_ICONS[route.name] ?? {on: 'circle', off: 'circle-outline'};
+          // Pilule Material 3 : fond teinté à l'accent derrière l'icône active.
           return (
-            <Icon name={icons[route.name] ?? 'circle'} size={size} color={color} />
+            <View
+              style={{
+                width: 60,
+                height: 32,
+                borderRadius: 16,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: focused ? accentSoft : 'transparent',
+              }}>
+              <Icon name={focused ? set.on : set.off} size={23} color={color} />
+            </View>
           );
         },
       })}>
@@ -119,7 +175,7 @@ export default function Navigation() {
         gestureEnabled: true,
         gestureDirection: 'horizontal',
         cardStyle: {backgroundColor: colors.bg},
-        cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
+        cardStyleInterpolator: forMaterialSharedAxisX,
         transitionSpec: {
           open: slideTimingSpec,
           close: slideTimingSpec,

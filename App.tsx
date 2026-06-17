@@ -1,12 +1,17 @@
 import React, {useEffect} from 'react';
-import {StatusBar} from 'react-native';
+import {LogBox, StatusBar} from 'react-native';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {DarkTheme, NavigationContainer} from '@react-navigation/native';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 
 import Navigation from './src/navigation';
 import {SettingsProvider, useSettings} from './src/context/SettingsContext';
+import {SnackbarProvider} from './src/context/SnackbarContext';
 import {seedRecipesIfNeeded} from './src/storage';
+
+// Avertissements de dépréciation internes aux librairies (react-navigation…),
+// sans impact sur l'app : on les masque pour ne pas polluer l'écran en dev.
+LogBox.ignoreLogs(['InteractionManager has been deprecated']);
 
 function Root() {
   const {colors} = useSettings();
@@ -23,10 +28,15 @@ function Root() {
   };
   return (
     <SafeAreaProvider>
-      <StatusBar barStyle="light-content" backgroundColor={colors.bg} />
-      <NavigationContainer theme={theme}>
-        <Navigation />
-      </NavigationContainer>
+      <StatusBar
+        barStyle={colors.mode === 'light' ? 'dark-content' : 'light-content'}
+        backgroundColor={colors.bg}
+      />
+      <SnackbarProvider>
+        <NavigationContainer theme={theme}>
+          <Navigation />
+        </NavigationContainer>
+      </SnackbarProvider>
     </SafeAreaProvider>
   );
 }

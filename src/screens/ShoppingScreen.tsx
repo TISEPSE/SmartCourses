@@ -1,6 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {
-  Alert,
   Animated,
   Keyboard,
   KeyboardAvoidingView,
@@ -10,7 +9,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import {useNavigation, useRoute, RouteProp} from '@react-navigation/native';
@@ -20,9 +18,10 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import {RootStackParamList, GroceryList, GroceryItem} from '../types';
 import {getLists, saveLists} from '../storage';
-import {Palette, spacing, radius} from '../theme';
-import {Progress, SwipeRow, SwipeRowHandle} from '../components';
+import {Palette, spacing, radius, withAlpha} from '../theme';
+import {Progress, SwipeRow, SwipeRowHandle, Touchable} from '../components';
 import {useSettings} from '../context/SettingsContext';
+import {useSnackbar} from '../context/SnackbarContext';
 
 type Route = RouteProp<RootStackParamList, 'Shopping'>;
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -33,6 +32,7 @@ export default function ShoppingScreen() {
   const insets = useSafeAreaInsets();
   const {listId} = route.params;
   const {settings, colors, accent, onAccent, accentSoft, haptic} = useSettings();
+  const {show: showSnackbar} = useSnackbar();
   const styles = makeStyles(colors);
 
   const [list, setList] = useState<GroceryList | null>(null);
@@ -151,18 +151,18 @@ export default function ShoppingScreen() {
 
   const removeItem = (item: GroceryItem) => {
     if (!list) return;
-    const doRemove = () => {
-      haptic();
-      persist({...list, items: list.items.filter(i => i.id !== item.id)});
-    };
+    // Suppression immédiate + annulation via le snackbar Material.
+    const before = list;
+    haptic();
+    persist({...list, items: list.items.filter(i => i.id !== item.id)});
     if (!settings.confirmDelete) {
-      doRemove();
       return;
     }
-    Alert.alert('Supprimer l’article', `Retirer « ${item.name} » de la liste ?`, [
-      {text: 'Annuler', style: 'cancel'},
-      {text: 'Supprimer', style: 'destructive', onPress: doRemove},
-    ]);
+    showSnackbar({
+      message: `« ${item.name} » supprimé`,
+      actionLabel: 'Annuler',
+      onAction: () => persist(before),
+    });
   };
 
   const openRename = (item: GroceryItem) => {
@@ -246,9 +246,13 @@ export default function ShoppingScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.appbar}>
-          <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.goBack()}>
+          <Touchable
+            style={styles.iconBtn}
+            borderless
+            scaleTo={1}
+            onPress={() => navigation.goBack()}>
             <Icon name="arrow-left" size={24} color={colors.text} />
-          </TouchableOpacity>
+          </Touchable>
           <View style={styles.titleBlock}>
             <Text style={styles.listName} numberOfLines={1}>{list.name}</Text>
             <Text style={styles.listSub}>
@@ -258,13 +262,17 @@ export default function ShoppingScreen() {
             </Text>
           </View>
           {!isCompleted && (
-            <TouchableOpacity style={styles.iconBtn} onPress={() => setHidePicked(h => !h)}>
+            <Touchable
+              style={styles.iconBtn}
+              borderless
+              scaleTo={1}
+              onPress={() => setHidePicked(h => !h)}>
               <Icon
                 name={hidePicked ? 'eye-off' : 'eye'}
                 size={22}
                 color={hidePicked ? colors.text : colors.text3}
               />
-            </TouchableOpacity>
+            </Touchable>
           )}
         </View>
         {isCompleted ? (
@@ -362,31 +370,31 @@ export default function ShoppingScreen() {
               ],
             },
           ]}>
-          <TouchableOpacity
+          <Touchable
             style={[styles.finishBtn, {backgroundColor: accent}]}
-            activeOpacity={0.85}
+            rippleColor={withAlpha(onAccent, 0.2)}
             onPress={() => {
               haptic();
               setCostModalVisible(true);
             }}>
             <Icon name="check" size={20} color={onAccent} />
             <Text style={[styles.finishBtnText, {color: onAccent}]}>Terminer</Text>
-          </TouchableOpacity>
+          </Touchable>
         </Animated.View>
       )}
 
       {/* Bas d'écran : refaire (terminée) ou barre d'ajout (en cours) */}
       {isCompleted ? (
         <View style={[styles.redoWrap, {paddingBottom: insets.bottom + 12}]}>
-          <TouchableOpacity
+          <Touchable
             style={[styles.redoBtn, {backgroundColor: accent}]}
-            activeOpacity={0.85}
+            rippleColor={withAlpha(onAccent, 0.2)}
             onPress={redoList}>
             <Icon name="refresh" size={20} color={onAccent} />
             <Text style={[styles.redoBtnText, {color: onAccent}]}>
               Refaire cette liste
             </Text>
-          </TouchableOpacity>
+          </Touchable>
         </View>
       ) : (
         <View style={[styles.addBar, {paddingBottom: kbVisible ? 4 : insets.bottom + 8}]}>
@@ -400,15 +408,16 @@ export default function ShoppingScreen() {
             returnKeyType="done"
           />
           <Animated.View style={{transform: [{scale: btnScale}]}}>
-            <TouchableOpacity
+            <Touchable
               style={[
                 styles.addBtn,
                 hasText && {backgroundColor: accent, borderColor: accent},
               ]}
-              onPress={addItem}
-              activeOpacity={0.8}>
+              scaleTo={0.9}
+              rippleColor={withAlpha(hasText ? onAccent : colors.text, 0.18)}
+              onPress={addItem}>
               <Icon name="plus" size={22} color={hasText ? onAccent : colors.text3} />
-            </TouchableOpacity>
+            </Touchable>
           </Animated.View>
         </View>
       )}
@@ -440,16 +449,18 @@ export default function ShoppingScreen() {
               />
             </View>
             <View style={styles.modalBtns}>
-              <TouchableOpacity
+              <Touchable
                 style={styles.modalBtnSecondary}
+                scaleTo={1}
                 onPress={() => { setCostModalVisible(false); setCostInput(''); }}>
                 <Text style={styles.modalBtnSecondaryText}>Annuler</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
+              </Touchable>
+              <Touchable
                 style={styles.modalBtnPrimary}
+                rippleColor={withAlpha(colors.bg, 0.2)}
                 onPress={finishShopping}>
                 <Text style={styles.modalBtnPrimaryText}>Terminer</Text>
-              </TouchableOpacity>
+              </Touchable>
             </View>
           </View>
         </KeyboardAvoidingView>
@@ -479,16 +490,18 @@ export default function ShoppingScreen() {
               returnKeyType="done"
             />
             <View style={styles.modalBtns}>
-              <TouchableOpacity
+              <Touchable
                 style={styles.modalBtnSecondary}
+                scaleTo={1}
                 onPress={() => setRenameTarget(null)}>
                 <Text style={styles.modalBtnSecondaryText}>Annuler</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
+              </Touchable>
+              <Touchable
                 style={styles.modalBtnPrimary}
+                rippleColor={withAlpha(colors.bg, 0.2)}
                 onPress={saveRename}>
                 <Text style={styles.modalBtnPrimaryText}>Renommer</Text>
-              </TouchableOpacity>
+              </Touchable>
             </View>
           </View>
         </KeyboardAvoidingView>

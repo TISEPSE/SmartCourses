@@ -8,7 +8,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -18,8 +17,8 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import {RootStackParamList} from '../types';
-import {Palette, radius, spacing} from '../theme';
-import {ThemePicker} from '../components';
+import {Palette, radius, spacing, withAlpha} from '../theme';
+import {ThemePicker, Touchable, Field} from '../components';
 import {ProviderBadge} from '../assets/logos';
 import {useSettings} from '../context/SettingsContext';
 import {AI_PROVIDERS, getProvider} from '../config/providers';
@@ -157,24 +156,20 @@ export default function OnboardingScreen() {
             <Text style={styles.title}>Bienvenue 👋</Text>
             <Text style={styles.sub}>Comment t'appelles-tu ?</Text>
 
-            <Text style={styles.fieldLabel}>Prénom</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Ton prénom"
-              placeholderTextColor={colors.text3}
+            <Field
+              label="Prénom"
               value={firstName}
               onChangeText={setFirstName}
               autoFocus
               returnKeyType="next"
+              containerStyle={styles.fieldSpace}
             />
-            <Text style={styles.fieldLabel}>Nom</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Ton nom"
-              placeholderTextColor={colors.text3}
+            <Field
+              label="Nom"
               value={lastName}
               onChangeText={setLastName}
               returnKeyType="done"
+              containerStyle={styles.fieldSpace}
             />
           </View>
         )}
@@ -189,9 +184,10 @@ export default function OnboardingScreen() {
             {AI_PROVIDERS.map(p => {
               const on = provider === p.id;
               return (
-                <TouchableOpacity
+                <Touchable
                   key={p.id}
-                  activeOpacity={0.85}
+                  scaleTo={0.98}
+                  rippleColor={withAlpha(accent, 0.16)}
                   style={[styles.choice, on && styles.choiceOn]}
                   onPress={() => {
                     haptic();
@@ -211,12 +207,13 @@ export default function OnboardingScreen() {
                     size={22}
                     color={on ? accent : colors.text3}
                   />
-                </TouchableOpacity>
+                </Touchable>
               );
             })}
 
-            <TouchableOpacity
-              activeOpacity={0.85}
+            <Touchable
+              scaleTo={0.98}
+              rippleColor={withAlpha(accent, 0.16)}
               style={[styles.choice, provider === NO_AI && styles.choiceOn]}
               onPress={() => {
                 haptic();
@@ -236,20 +233,18 @@ export default function OnboardingScreen() {
                 size={22}
                 color={provider === NO_AI ? accent : colors.text3}
               />
-            </TouchableOpacity>
+            </Touchable>
 
             {isCloud && (
               <View style={styles.customBox}>
-                <Text style={styles.fieldLabel}>Clé API {selected?.label}</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Colle ta clé ici…"
-                  placeholderTextColor={colors.text3}
+                <Field
+                  label={`Clé API ${selected?.label ?? ''}`}
                   value={apiKey}
                   onChangeText={setApiKey}
                   autoCapitalize="none"
                   autoCorrect={false}
                   secureTextEntry
+                  containerStyle={styles.fieldSpace}
                 />
                 {!!selected?.keyUrl && (
                   <TouchableOpacity
@@ -266,37 +261,31 @@ export default function OnboardingScreen() {
 
             {provider === 'custom' && (
               <View style={styles.customBox}>
-                <Text style={styles.fieldLabel}>URL du serveur</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="https://mon-serveur.com"
-                  placeholderTextColor={colors.text3}
+                <Field
+                  label="URL du serveur"
                   value={url}
                   onChangeText={setUrl}
                   autoCapitalize="none"
                   autoCorrect={false}
                   keyboardType="url"
+                  containerStyle={styles.fieldSpace}
                 />
-                <Text style={styles.fieldLabel}>Modèle</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="ex : llama3.2:3b"
-                  placeholderTextColor={colors.text3}
+                <Field
+                  label="Modèle"
                   value={model}
                   onChangeText={setModel}
                   autoCapitalize="none"
                   autoCorrect={false}
+                  containerStyle={styles.fieldSpace}
                 />
-                <Text style={styles.fieldLabel}>Clé API (optionnel)</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="laisser vide si aucune"
-                  placeholderTextColor={colors.text3}
+                <Field
+                  label="Clé API (optionnel)"
                   value={apiKey}
                   onChangeText={setApiKey}
                   autoCapitalize="none"
                   autoCorrect={false}
                   secureTextEntry
+                  containerStyle={styles.fieldSpace}
                 />
               </View>
             )}
@@ -319,18 +308,19 @@ export default function OnboardingScreen() {
       {/* Boutons */}
       <View style={[styles.footer, {paddingBottom: insets.bottom + spacing.md}]}>
         {step > 0 && (
-          <TouchableOpacity style={styles.backBtn} onPress={back}>
+          <Touchable style={styles.backBtn} onPress={back} scaleTo={1}>
             <Text style={styles.backBtnText}>Retour</Text>
-          </TouchableOpacity>
+          </Touchable>
         )}
-        <TouchableOpacity
+        <Touchable
           style={[
             styles.nextBtn,
             step === 0 && styles.nextBtnFull,
             {backgroundColor: canContinue ? accent : colors.cardHi},
           ]}
           onPress={next}
-          disabled={!canContinue}>
+          disabled={!canContinue}
+          rippleColor={withAlpha(onAccent, 0.2)}>
           <Text
             style={[
               styles.nextBtnText,
@@ -338,7 +328,7 @@ export default function OnboardingScreen() {
             ]}>
             {step === STEPS - 1 ? 'Commencer' : 'Continuer'}
           </Text>
-        </TouchableOpacity>
+        </Touchable>
       </View>
     </KeyboardAvoidingView>
   );
@@ -378,6 +368,7 @@ const makeStyles = (colors: Palette) =>
       marginBottom: 6,
       marginTop: spacing.md,
     },
+    fieldSpace: {marginTop: spacing.md},
     input: {
       backgroundColor: colors.card,
       borderWidth: 1,

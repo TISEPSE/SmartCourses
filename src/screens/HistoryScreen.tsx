@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {ScrollView, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
+import {ScrollView, StyleSheet, Text, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
@@ -57,11 +57,11 @@ export default function HistoryScreen() {
           </View>
         ) : (
           completed.map(l => (
-            <Card key={l.id} style={styles.histCard}>
-              <TouchableOpacity
-                style={styles.histInner}
-                activeOpacity={0.7}
-                onPress={() => navigation.navigate('Shopping', {listId: l.id})}>
+            <Card
+              key={l.id}
+              style={styles.histCard}
+              onPress={() => navigation.navigate('Shopping', {listId: l.id})}>
+              <View style={styles.histInner}>
                 <View style={styles.histInfo}>
                   <Text style={styles.histName}>{l.name}</Text>
                   <Text style={styles.histSub}>
@@ -80,7 +80,7 @@ export default function HistoryScreen() {
                     ? `${l.totalCost.toFixed(2).replace('.', ',')} €`
                     : '—'}
                 </Text>
-              </TouchableOpacity>
+              </View>
             </Card>
           ))
         )}

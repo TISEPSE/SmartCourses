@@ -1,10 +1,18 @@
 // Palettes complètes : chaque thème teinte TOUTE l'app (fond, surfaces, cartes,
 // bordures, textes, accent), pas seulement les boutons.
 
-export type ThemeName = 'nuit' | 'ocean' | 'foret' | 'amethyste' | 'braise';
+export type ThemeName =
+  | 'nuit'
+  | 'ocean'
+  | 'foret'
+  | 'amethyste'
+  | 'braise'
+  | 'android';
 
 export interface Palette {
   label: string;
+  /** Clair ou sombre : pilote la barre d'état et certains contrastes. */
+  mode: 'light' | 'dark';
   bg: string;
   surface: string;
   card: string;
@@ -25,6 +33,7 @@ export interface Palette {
 export const PALETTES: Record<ThemeName, Palette> = {
   nuit: {
     label: 'Nuit',
+    mode: 'dark',
     bg: '#000000',
     surface: '#111111',
     card: '#1A1A1A',
@@ -42,6 +51,7 @@ export const PALETTES: Record<ThemeName, Palette> = {
   },
   ocean: {
     label: 'Océan',
+    mode: 'dark',
     bg: '#07090F',
     surface: '#0E1320',
     card: '#141A2A',
@@ -59,6 +69,7 @@ export const PALETTES: Record<ThemeName, Palette> = {
   },
   foret: {
     label: 'Forêt',
+    mode: 'dark',
     bg: '#060B08',
     surface: '#0D1511',
     card: '#121C16',
@@ -76,6 +87,7 @@ export const PALETTES: Record<ThemeName, Palette> = {
   },
   amethyste: {
     label: 'Améthyste',
+    mode: 'dark',
     bg: '#0A070F',
     surface: '#130E1C',
     card: '#1A1326',
@@ -93,6 +105,7 @@ export const PALETTES: Record<ThemeName, Palette> = {
   },
   braise: {
     label: 'Braise',
+    mode: 'dark',
     bg: '#0B0805',
     surface: '#15100A',
     card: '#1E1610',
@@ -107,6 +120,26 @@ export const PALETTES: Record<ThemeName, Palette> = {
     accent: '#F5A623',
     onAccent: '#1A1206',
     accentSoft: 'rgba(245,166,35,0.18)',
+  },
+  // Thème Material You (clair) : violet vif, surfaces claires teintées et
+  // conteneurs tonals — le look « Android » par excellence.
+  android: {
+    label: 'Android',
+    mode: 'light',
+    bg: '#FEF7FF',
+    surface: '#F5EEFC',
+    card: '#FFFFFF',
+    cardHi: '#ECE0F6',
+    border: '#D7C8E6',
+    borderSoft: '#EADEF5',
+    text: '#1C1B1F',
+    text2: '#49454F',
+    text3: '#79747E',
+    text4: '#C9C0D2',
+    primary: '#7C4DFF',
+    accent: '#7C4DFF',
+    onAccent: '#FFFFFF',
+    accentSoft: 'rgba(124,77,255,0.16)',
   },
 };
 
@@ -138,3 +171,26 @@ export const font = {
   bold: 700,
   extrabold: 800,
 } as const;
+
+/**
+ * Convertit une couleur hex (#RGB, #RRGGBB) en rgba() avec l'alpha donné.
+ * Si la couleur est déjà au format rgb()/rgba() ou inconnue, on la renvoie
+ * telle quelle. Utilisé surtout pour teinter les ripples Android.
+ */
+export function withAlpha(color: string, alpha: number): string {
+  if (!color || color[0] !== '#') {
+    return color;
+  }
+  let hex = color.slice(1);
+  if (hex.length === 3) {
+    hex = hex
+      .split('')
+      .map(c => c + c)
+      .join('');
+  }
+  const num = parseInt(hex, 16);
+  const r = (num >> 16) & 255;
+  const g = (num >> 8) & 255;
+  const b = num & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}

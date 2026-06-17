@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {View, Text, ScrollView, TouchableOpacity, StyleSheet} from 'react-native';
+import {View, Text, ScrollView, StyleSheet} from 'react-native';
 import {useNavigation, useRoute, RouteProp} from '@react-navigation/native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -9,7 +9,7 @@ import {getRecipes, saveRecipes} from '../storage';
 import {ingredientLine} from '../data/recipes';
 import {recipeImage} from '../assets/recipes';
 import {Palette, radius, spacing} from '../theme';
-import {AppBar, FoodImage, PillTag, Divider} from '../components';
+import {AppBar, FoodImage, PillTag, Divider, Touchable} from '../components';
 import {useSettings} from '../context/SettingsContext';
 
 type Route = RouteProp<RootStackParamList, 'RecipeDetail'>;
@@ -97,9 +97,10 @@ export default function RecipeDetailScreen() {
             <Text style={styles.servesLabel}>Nombre de personnes</Text>
           </View>
           <View style={styles.stepper}>
-            <TouchableOpacity
+            <Touchable
               style={[styles.stepBtn, serves <= MIN_SERVES && styles.stepBtnOff]}
-              activeOpacity={0.7}
+              borderless
+              scaleTo={0.9}
               disabled={serves <= MIN_SERVES}
               onPress={() => changeServes(-1)}>
               <Icon
@@ -107,11 +108,12 @@ export default function RecipeDetailScreen() {
                 size={20}
                 color={serves <= MIN_SERVES ? colors.text3 : accent}
               />
-            </TouchableOpacity>
+            </Touchable>
             <Text style={styles.stepVal}>{serves}</Text>
-            <TouchableOpacity
+            <Touchable
               style={[styles.stepBtn, serves >= MAX_SERVES && styles.stepBtnOff]}
-              activeOpacity={0.7}
+              borderless
+              scaleTo={0.9}
               disabled={serves >= MAX_SERVES}
               onPress={() => changeServes(1)}>
               <Icon
@@ -119,7 +121,7 @@ export default function RecipeDetailScreen() {
                 size={20}
                 color={serves >= MAX_SERVES ? colors.text3 : accent}
               />
-            </TouchableOpacity>
+            </Touchable>
           </View>
         </View>
 

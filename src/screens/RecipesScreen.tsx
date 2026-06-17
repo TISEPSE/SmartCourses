@@ -1,11 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
-} from 'react-native';
+import {View, Text, ScrollView, StyleSheet} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -15,7 +9,7 @@ import {RootStackParamList, Recipe} from '../types';
 import {getRecipes} from '../storage';
 import {recipeImage} from '../assets/recipes';
 import {Palette, spacing, radius} from '../theme';
-import {AppBar, FoodImage, LargeHead} from '../components';
+import {AppBar, FoodImage, LargeHead, Touchable} from '../components';
 import {useSettings} from '../context/SettingsContext';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -58,10 +52,9 @@ export default function RecipesScreen() {
         ) : (
           <View style={styles.grid}>
             {recipes.map(r => (
-              <TouchableOpacity
+              <Touchable
                 key={r.id}
                 style={styles.recipeCard}
-                activeOpacity={0.7}
                 onPress={() =>
                   navigation.navigate('RecipeDetail', {recipeId: r.id})
                 }>
@@ -87,7 +80,7 @@ export default function RecipesScreen() {
                     style={styles.favIcon}
                   />
                 )}
-              </TouchableOpacity>
+              </Touchable>
             ))}
           </View>
         )}
