@@ -67,6 +67,37 @@ jobs:
           path: android/app/build/outputs/apk/release/SmartCourses-${{ github.ref_name }}.apk
           if-no-files-found: error
 
+      # AAB signé pour le Play Store : généré seulement si la keystore d'upload
+      # est configurée dans les secrets du dépôt. Sinon l'étape se contente d'un
+      # message (la pipeline APK/IPA reste fonctionnelle sans secrets).
+      - name: Build signed AAB (Play Store)
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "::notice::Secret ANDROID_KEYSTORE_BASE64 absent — AAB signé non généré."
+            exit 0
+          fi
+          echo "$KEYSTORE_B64" | base64 -d > android/app/upload.keystore
+          ( cd android && ./gradlew bundleRelease --no-daemon \
+              -PSC_UPLOAD_STORE_FILE=upload.keystore \
+              -PSC_UPLOAD_STORE_PASSWORD="$KS_PASS" \
+              -PSC_UPLOAD_KEY_ALIAS="$KEY_ALIAS" \
+              -PSC_UPLOAD_KEY_PASSWORD="$KEY_PASS" )
+          mv android/app/build/outputs/bundle/release/app-release.aab \
+             "android/app/build/outputs/bundle/release/SmartCourses-${{ github.ref_name }}.aab"
+          rm -f android/app/upload.keystore
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-aab
+          path: android/app/build/outputs/bundle/release/SmartCourses-${{ github.ref_name }}.aab
+          if-no-files-found: ignore
+
   ios:
     # Démarre une fois la release Android créée, puis y attache l'IPA iOS.
     needs: android
@@ -148,17 +179,30 @@ jobs:
           name: android-apk
           path: build
 
-      - name: Publish release (APK + IPA)
+      # L'AAB n'existe que si la keystore est configurée : téléchargement tolérant.
+      - name: Download AAB artifact
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: android-aab
+          path: build
+
+      - name: Publish release (APK + AAB + IPA)
         uses: softprops/action-gh-release@v2
         with:
           name: Smart Courses ${{ github.ref_name }}
           body: |
             ## Smart Courses ${{ github.ref_name }}
 
-            ### Android (recommandé)
+            ### Android — installation directe
             1. Télécharge le fichier `.apk` ci-dessous
             2. Sur ton téléphone Android : Paramètres → Sécurité → Autoriser les sources inconnues
             3. Ouvre le fichier `.apk` pour installer
+
+            ### Android — Play Store
+            Le fichier `.aab` (s'il est présent) est l'**App Bundle signé** à
+            téléverser sur la Google Play Console. Il n'est généré que si la
+            keystore d'upload est configurée dans les secrets du dépôt.
 
             ### iOS (IPA non signé)
             Le `.ipa` ci-dessous **n'est pas signé** : il n'est pas installable
@@ -170,5 +214,6 @@ jobs:
             *Build généré automatiquement depuis le tag `${{ github.ref_name }}`*
           files: |
             build/SmartCourses-${{ github.ref_name }}.apk
+            build/SmartCourses-${{ github.ref_name }}.aab
             build/SmartCourses-${{ github.ref_name }}.ipa
-          fail_on_unmatched_files: true
+          fail_on_unmatched_files: false

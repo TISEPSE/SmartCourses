@@ -28,8 +28,19 @@ SC_UPLOAD_KEY_ALIAS=smartcourses
 SC_UPLOAD_KEY_PASSWORD=********
 ```
 
-En CI (GitHub Actions) : stocker la keystore en base64 + les mots de passe dans
-les **secrets** du dépôt, puis les exposer en propriétés `-P` au build.
+En CI (GitHub Actions), le workflow `release.yml` génère **automatiquement** un
+AAB signé si ces **secrets** sont définis dans le dépôt
+(Settings → Secrets and variables → Actions) :
+
+| Secret | Contenu |
+| --- | --- |
+| `ANDROID_KEYSTORE_BASE64` | la keystore encodée en base64 (`base64 -w0 smartcourses-upload.keystore`) |
+| `ANDROID_KEYSTORE_PASSWORD` | mot de passe du store |
+| `ANDROID_KEY_ALIAS` | `smartcourses` (l'alias choisi) |
+| `ANDROID_KEY_PASSWORD` | mot de passe de la clé |
+
+Tant que ces secrets ne sont pas définis, la pipeline produit seulement l'APK
+(debug) + l'IPA ; dès qu'ils le sont, l'**AAB signé** apparaît dans la release.
 
 `android/app/build.gradle` est déjà prêt : si `SC_UPLOAD_STORE_FILE` est défini,
 le build release signe avec cette clé ; sinon il retombe sur debug (builds de test).
@@ -121,7 +132,8 @@ requis.)
 
 ## Reste à faire côté Play Console (hors code)
 
-- [ ] Générer la keystore d'upload et renseigner les secrets
-- [ ] Héberger `PRIVACY.md` et coller l'URL
-- [ ] Construire et uploader l'AAB signé
+- [ ] Générer la keystore d'upload et renseigner les 4 secrets GitHub (cf. §1) →
+      la pipeline produit alors l'**AAB signé** dans la release au prochain tag
+- [ ] Héberger `PRIVACY.md` et coller l'URL dans la Console
+- [ ] Télécharger l'AAB de la release et l'**uploader** sur la Play Console
 - [ ] Remplir Data Safety, classification, fiche + captures
