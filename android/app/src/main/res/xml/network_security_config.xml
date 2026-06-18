@@ -2,8 +2,14 @@
 <!--
   Autorise le trafic HTTP en clair (cleartext) afin de pouvoir joindre un
   serveur IA auto-hébergé sans HTTPS (ex: Ollama sur un VPS).
-  L'app est distribuée en sideload (APK), pas via le Play Store.
-  Pour plus de sécurité, exposer le serveur en HTTPS via un reverse proxy.
+  L'URL du serveur IA est configurée librement par l'utilisateur (Paramètres),
+  donc le domaine n'est pas connu à la compilation : on ne peut pas restreindre
+  cette autorisation à des domaines précis via <domain-config>. Cela reste
+  acceptable pour une publication Play Store : c'est un choix explicite et
+  documenté de l'utilisateur (config IA "personnalisée"), pas un défaut
+  silencieux, et aucune donnée sensible de l'app n'est envoyée ailleurs.
+  Pour plus de sécurité, l'utilisateur peut exposer son serveur en HTTPS
+  via un reverse proxy.
 -->
 <network-security-config>
     <base-config cleartextTrafficPermitted="true">

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Icône Smart Courses : une liste (trois lignes) + une pastille « coché ».
+  Couche foreground d'une adaptive icon (API 26+) ; le contenu reste dans la
+  zone de sécurité centrale (18-90 sur un viewport 108) pour ne pas être
+  rogné par les masques de forme (cercle, squircle…) des launchers.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Lignes de liste -->
+    <path android:fillColor="#FFFFFF" android:pathData="M30,33 h54 v10 h-54 z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M30,49 h42 v10 h-42 z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M30,65 h30 v10 h-30 z" />
+    <!-- Pastille « article coché » -->
+    <path
+        android:fillColor="#4F8EF7"
+        android:pathData="M64,76 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0 Z" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="7"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M69,76 L74,81 L84,68" />
+</vector>

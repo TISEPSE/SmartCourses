@@ -12,7 +12,7 @@ interface Section {
   body: string;
 }
 
-const UPDATED = '17 juin 2026';
+const UPDATED = '19 juin 2026';
 
 const SECTIONS: Section[] = [
   {
@@ -25,7 +25,7 @@ const SECTIONS: Section[] = [
   },
   {
     title: 'Assistant IA (facultatif)',
-    body: "L'assistant est désactivé par défaut. Si vous l'activez avec votre propre clé d'API, cette clé est stockée uniquement sur votre téléphone et vos messages sont envoyés directement au fournisseur que vous choisissez (Anthropic, OpenAI, Google, Mistral ou serveur personnel). Smart Courses ne reçoit ni ne stocke ces échanges ; ils sont régis par la politique du fournisseur.",
+    body: "L'assistant est désactivé par défaut. Si vous l'activez avec votre propre clé d'API, cette clé est stockée de façon chiffrée sur votre téléphone (trousseau sécurisé du système, jamais en texte brut) pour éviter de la ressaisir à chaque ouverture. Vos messages sont envoyés directement au fournisseur que vous choisissez (Anthropic, OpenAI, Google, Mistral ou serveur personnel). Smart Courses ne reçoit ni ne stocke ces échanges ; ils sont régis par la politique du fournisseur.",
   },
   {
     title: 'Permissions',
@@ -37,7 +37,7 @@ const SECTIONS: Section[] = [
   },
   {
     title: 'Contact',
-    body: 'Pour toute question : removed@example.com',
+    body: 'Pour toute question concernant cette politique de confidentialité, ouvrez une demande (issue) sur le dépôt GitHub du projet : https://github.com/TISEPSE/SmartCourses/issues',
   },
 ];
 

@@ -1,6 +1,6 @@
 # Politique de confidentialité — Smart Courses
 
-**Dernière mise à jour : 17 juin 2026**
+**Dernière mise à jour : 19 juin 2026**
 
 Smart Courses est une application de listes de courses et de recettes. Cette
 politique explique quelles données l'application traite et comment.
@@ -34,8 +34,10 @@ Anthropic, OpenAI, Google, Mistral, ou un serveur personnel compatible).
 
 Dans ce cas :
 
-- Votre **clé d'API** est stockée **uniquement sur votre téléphone** et n'est
-  envoyée qu'au fournisseur que vous avez choisi, pour authentifier vos requêtes.
+- Votre **clé d'API** est stockée **chiffrée** sur votre téléphone, dans le
+  trousseau sécurisé du système (Keychain iOS / Keystore Android) — jamais en
+  texte brut. Elle n'est envoyée qu'au fournisseur que vous avez choisi, pour
+  authentifier vos requêtes.
 - Les **messages que vous écrivez** dans l'assistant sont envoyés **directement**
   à ce fournisseur pour générer une réponse.
 - Smart Courses ne reçoit, ne stocke ni ne transmet ces échanges : ils circulent
@@ -66,4 +68,6 @@ dernière version.
 
 ## Contact
 
-Pour toute question : **removed@example.com**
+Pour toute question concernant cette politique de confidentialité, ouvrez une
+demande (issue) sur le dépôt GitHub du projet :
+https://github.com/TISEPSE/SmartCourses/issues

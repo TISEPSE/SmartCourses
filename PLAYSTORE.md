@@ -129,6 +129,35 @@ requis.)
 - [x] Config de signature release prête (clés via variables, non commitées)
 - [x] `versionCode`/`versionName` à jour
 - [x] Politique de confidentialité (doc + écran in-app + lien Paramètres)
+- [x] Bug « Tout réinitialiser » corrigé : effaçait listes/recettes mais pas le
+      profil, le thème, la clé IA ni les préférences (`SettingsContext.tsx` /
+      `SettingsScreen.tsx`) — l'action correspond maintenant à ce que dit
+      `PRIVACY.md`.
+- [x] Icône d'app personnalisée (adaptive icon vectorielle, remplace l'icône
+      par défaut React Native) — voir `res/drawable/ic_launcher_*.xml` et
+      `res/mipmap-anydpi-v26/`. Les appareils API < 26 (négligeables en 2026)
+      afficheront encore l'ancienne icône PNG tant que les mipmaps legacy ne
+      sont pas régénérées (nécessite un outil de rasterisation, non disponible
+      dans cet environnement).
+- [x] Pipeline CI `.github/workflows/release.yml` vérifiée (build APK toujours,
+      AAB signé + IPA conditionnels). Non exécutée/testée depuis cet
+      environnement (pas d'accès à GitHub Actions ici) : à valider au premier
+      tag réel.
+- [x] Audit sécurité/confidentialité : email personnel retiré du contact
+      in-app (`PrivacyScreen.tsx`) et de `PRIVACY.md` ; domaine personnel
+      (`example.com`) retiré de `SettingsContext.tsx` ; chemins locaux
+      retirés de `docs/superpowers/`. La clé API IA est désormais stockée
+      chiffrée dans le trousseau du système (Keychain iOS / Keystore Android,
+      via `react-native-keychain`) au lieu d'être en clair dans le JSON de
+      réglages — voir `SettingsContext.tsx`.
+      **Avant de builder** : `npm install` (ajoute `react-native-keychain` au
+      `node_modules`) puis, pour iOS, `cd ios && pod install`. Non
+      installé/testé depuis cet environnement (pas de terminal fonctionnel
+      ici) : à vérifier sur ta machine au premier build.
+      **Reste à faire par toi (hors de portée de cet environnement)** :
+      réécrire l'historique Git avant de rendre le dépôt public — chaque
+      commit existant porte ton nom et ton email, et un ancien commit a
+      contenu un token IA en dur (voir détails donnés dans la conversation).
 
 ## Reste à faire côté Play Console (hors code)
 

@@ -109,7 +109,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Select Xcode 16
-        run: sudo xcode-select -s /Applications/Xcode_16.1.app
+        # Préfère Xcode 16.1 (minimum requis par RN 0.86) si l'image du runner
+        # l'expose encore ; sinon retombe sur le Xcode par défaut de l'image
+        # (toujours présent, et plus récent au fil des mises à jour GitHub).
+        run: sudo xcode-select -s /Applications/Xcode_16.1.app 2>/dev/null || sudo xcode-select -s /Applications/Xcode.app
 
       - name: Ensure iOS platform is installed
         run: |

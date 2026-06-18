@@ -91,7 +91,7 @@ function ToggleRow({label, sub, value, onChange}: ToggleRowProps) {
 export default function SettingsScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
-  const {settings, setSetting, colors, accent, haptic} = useSettings();
+  const {settings, setSetting, colors, accent, haptic, resetSettings} = useSettings();
   const styles = makeStyles(colors);
 
   const provider = getProvider(settings.aiProvider);
@@ -146,14 +146,22 @@ export default function SettingsScreen() {
   const confirmReset = () => {
     Alert.alert(
       'Tout réinitialiser',
-      'Toutes les données de l’application seront effacées (listes, historique). Cette action est irréversible.',
+      'Toutes les données de l’application seront effacées (listes, recettes, profil, clé IA, préférences). Cette action est irréversible.',
       [
         {text: 'Annuler', style: 'cancel'},
         {
           text: 'Réinitialiser',
           style: 'destructive',
           onPress: async () => {
+            // Les deux appels sont nécessaires : resetAllData() efface les
+            // listes/recettes (storage/index.ts), resetSettings() efface le
+            // profil, le thème, les préférences et la config IA (réglages
+            // persistés séparément dans SettingsContext). Sans le second
+            // appel, le bouton ne remplit pas sa promesse « Tout
+            // réinitialiser » telle que décrite dans la politique de
+            // confidentialité.
             await resetAllData();
+            await resetSettings();
             haptic();
           },
         },
@@ -292,6 +300,10 @@ export default function SettingsScreen() {
                   </Text>
                 </TouchableOpacity>
               )}
+              <Text style={styles.keyLinkText}>
+                Stockée de façon chiffrée sur cet appareil (trousseau du
+                système).
+              </Text>
               <Divider />
               <View style={styles.fieldRow}>
                 <Text style={styles.fieldLabel}>Modèle</Text>
@@ -345,6 +357,10 @@ export default function SettingsScreen() {
                 onChange={v => setSetting('aiApiKey', v)}
                 secure
               />
+              <Text style={styles.keyLinkText}>
+                Stockée de façon chiffrée sur cet appareil (trousseau du
+                système).
+              </Text>
             </>
             )}
           </Card>
