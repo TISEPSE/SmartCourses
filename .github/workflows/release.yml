@@ -42,18 +42,18 @@ jobs:
 
       - name: Setup Android SDK components
         run: |
-          echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
+          ANDROID_SDK="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+          echo "ANDROID_HOME=$ANDROID_SDK" >> $GITHUB_ENV
+          echo "y" | $ANDROID_SDK/cmdline-tools/latest/bin/sdkmanager \
             "build-tools;36.0.0" \
             "platforms;android-36" \
-            "ndk;27.1.12297006" 2>/dev/null || true
+            "ndk;27.1.12297006"
 
       - name: Make gradlew executable
         run: chmod +x android/gradlew
 
       - name: Build release APK
         run: cd android && ./gradlew assembleRelease --no-daemon
-        env:
-          ANDROID_HOME: ${{ env.ANDROID_HOME }}
 
       - name: Rename APK
         run: |
