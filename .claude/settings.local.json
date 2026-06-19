@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git pull:*)",
+      "Bash(git:*)",
+      "Bash(GIT_COMMITTER_EMAIL=\"TISEPSE@users.noreply.github.com\" GIT_COMMITTER_NAME=\"TISEPSE\" git commit:*)"
+    ]
+  }
+}
