@@ -1,7 +1,9 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   ScrollView,
   StyleSheet,
@@ -100,6 +102,32 @@ export default function AiScreen() {
     haptic();
     setBubbles([]);
     AsyncStorage.removeItem(CHAT_KEY).catch(() => {});
+  };
+
+  // Signalement d'un contenu généré par l'IA (exigence Google Play pour l'IA
+  // générative). L'utilisateur peut masquer immédiatement le message et, s'il le
+  // souhaite, transmettre un signalement aux développeurs.
+  const reportBubble = (index: number) => {
+    haptic();
+    Alert.alert(
+      'Signaler cette réponse',
+      'Ce contenu a été généré par une IA. Tu peux le masquer immédiatement et, si tu le souhaites, signaler le problème aux développeurs.',
+      [
+        {
+          text: 'Masquer ce message',
+          style: 'destructive',
+          onPress: () => setBubbles(prev => prev.filter((_, i) => i !== index)),
+        },
+        {
+          text: 'Signaler aux développeurs',
+          onPress: () =>
+            Linking.openURL(
+              'https://github.com/TISEPSE/SmartCourses/issues/new?labels=contenu-ia&title=Signalement%20de%20contenu%20IA',
+            ).catch(() => {}),
+        },
+        {text: 'Annuler', style: 'cancel'},
+      ],
+    );
   };
 
   const scrollToEnd = (animated = true) => {
@@ -287,6 +315,13 @@ export default function AiScreen() {
                     Créer la liste
                   </Text>
                 </Touchable>
+                <TouchableOpacity
+                  style={styles.reportBtnCard}
+                  onPress={() => reportBubble(i)}
+                  hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
+                  <Icon name="flag-outline" size={13} color={colors.text3} />
+                  <Text style={styles.reportText}>Signaler</Text>
+                </TouchableOpacity>
               </View>
             );
           }
@@ -312,6 +347,15 @@ export default function AiScreen() {
                   disabled={loading}>
                   <Icon name="refresh" size={15} color={accent} />
                   <Text style={[styles.retryText, {color: accent}]}>Réessayer</Text>
+                </TouchableOpacity>
+              )}
+              {!isUser && b.text && !b.error && (
+                <TouchableOpacity
+                  style={styles.reportBtn}
+                  onPress={() => reportBubble(i)}
+                  hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
+                  <Icon name="flag-outline" size={13} color={colors.text3} />
+                  <Text style={styles.reportText}>Signaler</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -424,6 +468,23 @@ const makeStyles = (colors: Palette) =>
     paddingVertical: 4,
   },
   retryText: {fontSize: 13.5, fontWeight: '800'},
+  reportBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    alignSelf: 'flex-start',
+    marginTop: 6,
+    paddingVertical: 2,
+  },
+  reportBtnCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    alignSelf: 'center',
+    marginTop: 10,
+    paddingVertical: 2,
+  },
+  reportText: {fontSize: 12, fontWeight: '700', color: colors.text3},
   listCard: {
     backgroundColor: colors.card,
     borderRadius: radius.lg,
