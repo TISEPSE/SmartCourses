@@ -1,28 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Icône Smart Courses : une liste (trois lignes) + une pastille « coché ».
-  Couche foreground d'une adaptive icon (API 26+) ; le contenu reste dans la
-  zone de sécurité centrale (18-90 sur un viewport 108) pour ne pas être
-  rogné par les masques de forme (cercle, squircle…) des launchers.
+  Icône Smart Courses : un caddie de courses.
+  Couche foreground d'une adaptive icon (API 26+). Le tracé (Font Awesome Free,
+  viewport 640) est mis à l'échelle (~0.10) et centré dans la zone de sécurité
+  centrale du viewport 108 pour ne pas être rogné par les masques de forme.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Lignes de liste -->
-    <path android:fillColor="#FFFFFF" android:pathData="M30,33 h54 v10 h-54 z" />
-    <path android:fillColor="#FFFFFF" android:pathData="M30,49 h42 v10 h-42 z" />
-    <path android:fillColor="#FFFFFF" android:pathData="M30,65 h30 v10 h-30 z" />
-    <!-- Pastille « article coché » -->
-    <path
-        android:fillColor="#4F8EF7"
-        android:pathData="M64,76 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0 Z" />
-    <path
-        android:fillColor="#00000000"
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="7"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:pathData="M69,76 L74,81 L84,68" />
+    <group
+        android:scaleX="0.10"
+        android:scaleY="0.10"
+        android:translateX="25.55"
+        android:translateY="22.8"
+        android:pivotX="0"
+        android:pivotY="0">
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M24,48 C10.7,48 0,58.7 0,72 C0,85.3 10.7,96 24,96 L69.3,96 C73.2,96 76.5,98.8 77.2,102.6 L129.3,388.9 C135.5,423.1 165.3,448 200.1,448 L456,448 C469.3,448 480,437.3 480,424 C480,410.7 469.3,400 456,400 L200.1,400 C188.5,400 178.6,391.7 176.5,380.3 L171.4,352 L475,352 C505.8,352 532.2,330.1 537.9,299.8 L568.9,133.9 C572.6,114.2 557.5,96 537.4,96 L124.7,96 L124.3,94 C119.5,67.4 96.3,48 69.2,48 L24,48 Z M208,576 C234.5,576 256,554.5 256,528 C256,501.5 234.5,480 208,480 C181.5,480 160,501.5 160,528 C160,554.5 181.5,576 208,576 Z M432,576 C458.5,576 480,554.5 480,528 C480,501.5 458.5,480 432,480 C405.5,480 384,501.5 384,528 C384,554.5 405.5,576 432,576 Z" />
+    </group>
 </vector>
