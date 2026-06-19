@@ -17,7 +17,7 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import {RootStackParamList, GroceryList, GroceryItem} from '../types';
-import {getLists, saveLists} from '../storage';
+import {getLists, saveLists, deleteList} from '../storage';
 import {Palette, spacing, radius, withAlpha} from '../theme';
 import {Progress, SwipeRow, SwipeRowHandle, Touchable} from '../components';
 import {useSettings} from '../context/SettingsContext';
@@ -45,6 +45,7 @@ export default function ShoppingScreen() {
   const [renameTarget, setRenameTarget] = useState<GroceryItem | null>(null);
   const [renameInput, setRenameInput] = useState('');
   const [finishMounted, setFinishMounted] = useState(false);
+  const [deleteListModalVisible, setDeleteListModalVisible] = useState(false);
 
   const btnScale = useRef(new Animated.Value(1)).current;
   const finishAnim = useRef(new Animated.Value(0)).current;
@@ -183,6 +184,19 @@ export default function ShoppingScreen() {
     setRenameTarget(null);
   };
 
+  const openDeleteListModal = () => {
+    haptic();
+    setDeleteListModalVisible(true);
+  };
+
+  const confirmDeleteList = async () => {
+    if (!list) return;
+    haptic();
+    await deleteList(list.id);
+    setDeleteListModalVisible(false);
+    navigation.goBack();
+  };
+
   const redoList = async () => {
     if (!list) return;
     const copy: GroceryList = {
@@ -274,6 +288,13 @@ export default function ShoppingScreen() {
               />
             </Touchable>
           )}
+          <Touchable
+            style={styles.iconBtn}
+            borderless
+            scaleTo={1}
+            onLongPress={openDeleteListModal}>
+            <Icon name="trash-can-outline" size={22} color={colors.text3} />
+          </Touchable>
         </View>
         {isCompleted ? (
           <View style={styles.recapBlock}>
@@ -506,6 +527,40 @@ export default function ShoppingScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* Modal confirmation suppression de liste */}
+      <Modal
+        visible={deleteListModalVisible}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => setDeleteListModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <View style={styles.deleteIconWrap}>
+              <Icon name="trash-can-outline" size={26} color="#CC2200" />
+            </View>
+            <Text style={styles.modalTitle}>Supprimer « {list.name} » ?</Text>
+            <Text style={styles.modalSub}>
+              Cette liste et tous ses articles seront définitivement supprimés.
+            </Text>
+            <View style={styles.modalBtns}>
+              <Touchable
+                style={styles.modalBtnSecondary}
+                scaleTo={1}
+                onPress={() => setDeleteListModalVisible(false)}>
+                <Text style={styles.modalBtnSecondaryText}>Annuler</Text>
+              </Touchable>
+              <Touchable
+                style={styles.modalBtnDanger}
+                rippleColor={withAlpha('#FFFFFF', 0.2)}
+                onPress={confirmDeleteList}>
+                <Text style={styles.modalBtnDangerText}>Supprimer</Text>
+              </Touchable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -726,4 +781,23 @@ const makeStyles = (colors: Palette) =>
     justifyContent: 'center',
   },
   modalBtnPrimaryText: {fontSize: 15, fontWeight: '700', color: colors.bg},
+  modalBtnDanger: {
+    flex: 1,
+    height: 44,
+    borderRadius: radius.md,
+    backgroundColor: '#CC2200',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalBtnDangerText: {fontSize: 15, fontWeight: '700', color: '#FFFFFF'},
+  deleteIconWrap: {
+    alignSelf: 'center',
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: withAlpha('#CC2200', 0.12),
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
 });

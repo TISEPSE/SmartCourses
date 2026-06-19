@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   Alert,
   View,
@@ -21,6 +21,7 @@ import {Palette, PALETTES, ThemeName, spacing, radius, withAlpha} from '../theme
 import {
   AppBar,
   AppSwitch,
+  Btn,
   Card,
   Divider,
   SectionLabel,
@@ -31,6 +32,7 @@ import {
   Field,
 } from '../components';
 import {useSettings} from '../context/SettingsContext';
+import {useSnackbar} from '../context/SnackbarContext';
 
 const THEME_OPTIONS: SelectOption[] = (Object.keys(PALETTES) as ThemeName[]).map(
   name => ({label: PALETTES[name].label, value: name}),
@@ -92,23 +94,49 @@ export default function SettingsScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const {settings, setSetting, colors, accent, haptic, resetSettings} = useSettings();
+  const {show: showSnackbar} = useSnackbar();
   const styles = makeStyles(colors);
 
   const provider = getProvider(settings.aiProvider);
   const isCloud = !!provider && provider.id !== 'custom';
   const [modelCustom, setModelCustom] = useState(false);
+
+  // La clé API, l'URL du serveur et le nom du modèle sont édités dans des
+  // champs "brouillon" : rien n'est persisté (ni AsyncStorage, ni le
+  // trousseau système pour la clé) tant que l'utilisateur n'appuie pas sur
+  // « Enregistrer ». Évite une écriture chiffrée à chaque frappe et rend
+  // l'action explicite. On resynchronise le brouillon depuis les réglages
+  // persistés chaque fois que le fournisseur change (changement manuel,
+  // hydratation initiale, ou réinitialisation globale).
+  const [draftApiKey, setDraftApiKey] = useState(settings.aiApiKey);
+  const [draftBaseUrl, setDraftBaseUrl] = useState(settings.aiBaseUrl);
+  const [draftModelName, setDraftModelName] = useState(settings.aiModel);
+
+  useEffect(() => {
+    setDraftApiKey(settings.aiApiKey);
+    setDraftBaseUrl(settings.aiBaseUrl);
+    setDraftModelName(settings.aiModel);
+    setModelCustom(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.aiProvider]);
+
   const showCustomModel =
     modelCustom ||
     (!!provider &&
       provider.models.length > 0 &&
-      !!settings.aiModel &&
-      !provider.models.includes(settings.aiModel));
+      !!draftModelName &&
+      !provider.models.includes(draftModelName));
   const modelOptions: SelectOption[] = provider
     ? [
         ...provider.models.map(m => ({label: m, value: m})),
         {label: 'Personnalisé…', value: CUSTOM_MODEL},
       ]
     : [];
+
+  const aiDirty =
+    draftApiKey.trim() !== settings.aiApiKey ||
+    draftBaseUrl.trim() !== settings.aiBaseUrl ||
+    draftModelName.trim() !== settings.aiModel;
 
   const changeProvider = (v: string) => {
     haptic();
@@ -123,6 +151,17 @@ export default function SettingsScreen() {
       setSetting('aiModel', p.defaultModel);
       setSetting('aiBaseUrl', '');
     }
+  };
+
+  const saveAiConfig = () => {
+    setSetting('aiApiKey', draftApiKey.trim());
+    setSetting('aiModel', draftModelName.trim());
+    if (provider?.id === 'custom') {
+      setSetting('aiBaseUrl', draftBaseUrl.trim());
+    }
+    setModelCustom(false);
+    haptic();
+    showSnackbar({message: 'Configuration IA enregistrée'});
   };
 
   const confirmClearHistory = () => {
@@ -285,9 +324,9 @@ export default function SettingsScreen() {
               <>
               <FieldRow
                 label={`Clé API ${provider.label}`}
-                value={settings.aiApiKey}
+                value={draftApiKey}
                 placeholder="Colle ta clé ici…"
-                onChange={v => setSetting('aiApiKey', v)}
+                onChange={setDraftApiKey}
                 secure
               />
               {!!provider.keyUrl && (
@@ -300,7 +339,7 @@ export default function SettingsScreen() {
                   </Text>
                 </TouchableOpacity>
               )}
-              <Text style={styles.keyLinkText}>
+              <Text style={styles.helperText}>
                 Stockée de façon chiffrée sur cet appareil (trousseau du
                 système).
               </Text>
@@ -308,22 +347,22 @@ export default function SettingsScreen() {
               <View style={styles.fieldRow}>
                 <Text style={styles.fieldLabel}>Modèle</Text>
                 <Select
-                  value={showCustomModel ? CUSTOM_MODEL : settings.aiModel}
+                  value={showCustomModel ? CUSTOM_MODEL : draftModelName}
                   options={modelOptions}
                   onChange={v => {
                     if (v === CUSTOM_MODEL) {
                       setModelCustom(true);
                     } else {
                       setModelCustom(false);
-                      setSetting('aiModel', v);
+                      setDraftModelName(v);
                     }
                   }}
                 />
                 {showCustomModel && (
                   <Field
                     label="Nom du modèle"
-                    value={settings.aiModel}
-                    onChangeText={v => setSetting('aiModel', v)}
+                    value={draftModelName}
+                    onChangeText={setDraftModelName}
                     autoCapitalize="none"
                     autoCorrect={false}
                     containerStyle={styles.modelFieldSpace}
@@ -337,32 +376,40 @@ export default function SettingsScreen() {
             <>
               <FieldRow
                 label="URL du serveur"
-                value={settings.aiBaseUrl}
+                value={draftBaseUrl}
                 placeholder="http://mon-serveur:11434"
-                onChange={v => setSetting('aiBaseUrl', v)}
+                onChange={setDraftBaseUrl}
                 keyboardType="url"
               />
               <Divider />
               <FieldRow
                 label="Modèle"
-                value={settings.aiModel}
+                value={draftModelName}
                 placeholder="ex : llama3.2:3b"
-                onChange={v => setSetting('aiModel', v)}
+                onChange={setDraftModelName}
               />
               <Divider />
               <FieldRow
                 label="Clé API (optionnel)"
-                value={settings.aiApiKey}
+                value={draftApiKey}
                 placeholder="laisser vide si aucune"
-                onChange={v => setSetting('aiApiKey', v)}
+                onChange={setDraftApiKey}
                 secure
               />
-              <Text style={styles.keyLinkText}>
+              <Text style={styles.helperText}>
                 Stockée de façon chiffrée sur cet appareil (trousseau du
                 système).
               </Text>
             </>
             )}
+            <View style={styles.saveBtnWrap}>
+              <Btn
+                onPress={saveAiConfig}
+                variant={aiDirty ? 'primary' : 'tonal'}
+                icon="content-save-outline">
+                Enregistrer
+              </Btn>
+            </View>
           </Card>
         )}
         <Text style={styles.aiHint}>
@@ -468,6 +515,19 @@ const makeStyles = (colors: Palette) =>
     marginTop: -4,
   },
   keyLinkText: {fontSize: 13, fontWeight: '700', color: colors.text3},
+  helperText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.text3,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: 12,
+    marginTop: -4,
+  },
+  saveBtnWrap: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: 4,
+    paddingBottom: spacing.lg,
+  },
   choice: {
     flexDirection: 'row',
     alignItems: 'center',
