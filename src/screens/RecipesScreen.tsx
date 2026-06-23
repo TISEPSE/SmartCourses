@@ -1,25 +1,28 @@
 import React, {useEffect, useState} from 'react';
 import {View, Text, ScrollView, StyleSheet} from 'react-native';
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation, useRoute, RouteProp} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
-import {RootStackParamList, Recipe} from '../types';
+import {RootStackParamList, TabParamList, Recipe} from '../types';
 import {getRecipes} from '../storage';
 import {recipeImage} from '../assets/recipes';
 import {Palette, spacing, radius} from '../theme';
-import {AppBar, FoodImage, LargeHead, Touchable} from '../components';
+import {AppBar, Chip, FoodImage, LargeHead, Touchable} from '../components';
 import {useSettings} from '../context/SettingsContext';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
+type Route = RouteProp<TabParamList, 'Recipes'>;
 
 export default function RecipesScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
+  const route = useRoute<Route>();
   const {colors} = useSettings();
   const styles = makeStyles(colors);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [favsOnly, setFavsOnly] = useState(false);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', async () => {
@@ -28,7 +31,14 @@ export default function RecipesScreen() {
     return unsubscribe;
   }, [navigation]);
 
+  // Le raccourci « Favoris » de l'accueil ouvre cet onglet avec le filtre
+  // pré-activé. On suit le param à chaque changement.
+  useEffect(() => {
+    setFavsOnly(!!route.params?.favorites);
+  }, [route.params?.favorites]);
+
   const favs = recipes.filter(r => r.fav).length;
+  const visible = favsOnly ? recipes.filter(r => r.fav) : recipes;
 
   return (
     <View style={[styles.container, {paddingTop: insets.top}]}>
@@ -37,6 +47,16 @@ export default function RecipesScreen() {
         title="Recettes"
         sub={`${recipes.length} sauvegardées · ${favs} favoris`}
       />
+      {recipes.length > 0 && (
+        <View style={styles.filterRow}>
+          <Chip on={!favsOnly} onPress={() => setFavsOnly(false)}>
+            Toutes
+          </Chip>
+          <Chip on={favsOnly} icon="heart" onPress={() => setFavsOnly(true)}>
+            Favoris
+          </Chip>
+        </View>
+      )}
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
@@ -49,9 +69,17 @@ export default function RecipesScreen() {
               Ajoute ta première recette avec le bouton +
             </Text>
           </View>
+        ) : visible.length === 0 ? (
+          <View style={styles.empty}>
+            <Icon name="heart-outline" size={48} color={colors.text3} />
+            <Text style={styles.emptyTitle}>Aucun favori</Text>
+            <Text style={styles.emptyHint}>
+              Ajoute des recettes à tes favoris pour les retrouver ici
+            </Text>
+          </View>
         ) : (
           <View style={styles.grid}>
-            {recipes.map(r => (
+            {visible.map(r => (
               <Touchable
                 key={r.id}
                 style={styles.recipeCard}
@@ -93,6 +121,12 @@ export default function RecipesScreen() {
 const makeStyles = (colors: Palette) =>
   StyleSheet.create({
   container: {flex: 1, backgroundColor: colors.bg},
+  filterRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.sm,
+  },
   scroll: {flex: 1},
   content: {paddingHorizontal: spacing.lg, flexGrow: 1},
   empty: {

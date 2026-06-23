@@ -48,6 +48,7 @@ export type RootStackParamList = {
   CreateList: undefined;
   RecipeDetail: { recipeId: string };
   Settings: undefined;
+  AiSettings: undefined;
   Preferences: undefined;
   History: undefined;
   EditProfile: undefined;
@@ -58,6 +59,6 @@ export type TabParamList = {
   Home: undefined;
   Grocery: undefined;
   AI: undefined;
-  Recipes: undefined;
+  Recipes: {favorites?: boolean} | undefined;
   Profile: undefined;
 };

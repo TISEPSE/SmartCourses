@@ -5,7 +5,7 @@ import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
-import {RootStackParamList} from '../types';
+import {RootStackParamList, TabParamList} from '../types';
 import {getLists} from '../storage';
 import {GroceryList} from '../types';
 import {Palette, spacing, radius} from '../theme';
@@ -14,10 +14,18 @@ import {useSettings} from '../context/SettingsContext';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-const QUICK_ACTIONS = [
-  {icon: 'plus-circle', label: 'Nouvelle liste', screen: 'CreateList' as const},
+type QuickAction = {
+  icon: string;
+  label: string;
+  screen?: keyof RootStackParamList;
+  tab?: keyof TabParamList;
+  params?: {favorites?: boolean};
+};
+
+const QUICK_ACTIONS: QuickAction[] = [
+  {icon: 'heart', label: 'Favoris', tab: 'Recipes', params: {favorites: true}},
   {icon: 'book-open-variant', label: 'Recettes', tab: 'Recipes'},
-  {icon: 'history', label: 'Historique', screen: 'History' as const},
+  {icon: 'history', label: 'Historique', screen: 'History'},
 ];
 
 export default function HomeScreen() {
@@ -127,8 +135,9 @@ export default function HomeScreen() {
                   navigation.navigate(q.screen as any);
                 } else if (q.tab) {
                   // L'onglet appartient au Tab.Navigator parent : navigate
-                  // remonte jusqu'à lui pour changer d'onglet
-                  navigation.navigate(q.tab as any);
+                  // remonte jusqu'à lui pour changer d'onglet (avec params
+                  // éventuels, ex. filtre favoris)
+                  navigation.navigate(q.tab as any, q.params);
                 }
               }}>
               <View style={styles.qaIcon}>

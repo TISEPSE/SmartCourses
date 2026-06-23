@@ -52,7 +52,6 @@ export default function OnboardingScreen() {
   }, [step, anim]);
 
   const [firstName, setFirstName] = useState(settings.firstName);
-  const [lastName, setLastName] = useState(settings.lastName);
   // '' = rien choisi ; NO_AI = sans IA ; sinon un id de fournisseur.
   const [provider, setProvider] = useState<string>('');
   const [url, setUrl] = useState('');
@@ -79,10 +78,9 @@ export default function OnboardingScreen() {
 
   const finish = () => {
     const fn = firstName.trim();
-    const ln = lastName.trim();
     setSetting('firstName', fn);
-    setSetting('lastName', ln);
-    setSetting('userName', `${fn} ${ln}`.trim());
+    setSetting('lastName', '');
+    setSetting('userName', fn);
 
     if (provider === NO_AI || provider === '') {
       setSetting('aiProvider', '');
@@ -109,12 +107,12 @@ export default function OnboardingScreen() {
     provider === NO_AI ||
     (provider === 'custom' && url.trim().length > 0) ||
     (isCloud && apiKey.trim().length > 0);
-  const canContinue =
-    step === 0
-      ? firstName.trim().length > 0
-      : step === 1
-      ? step1Ok
-      : true;
+  // Le prénom est facultatif : on peut continuer (ou passer) sans le saisir.
+  const skipName = () => {
+    setFirstName('');
+    next();
+  };
+  const canContinue = step === 1 ? step1Ok : true;
 
   return (
     <KeyboardAvoidingView
@@ -154,23 +152,23 @@ export default function OnboardingScreen() {
         {step === 0 && (
           <View>
             <Text style={styles.title}>Bienvenue 👋</Text>
-            <Text style={styles.sub}>Comment t'appelles-tu ?</Text>
+            <Text style={styles.sub}>
+              Indique ton prénom pour personnaliser l'app, ou passe cette étape.
+            </Text>
 
             <Field
               label="Prénom"
               value={firstName}
               onChangeText={setFirstName}
               autoFocus
-              returnKeyType="next"
-              containerStyle={styles.fieldSpace}
-            />
-            <Field
-              label="Nom"
-              value={lastName}
-              onChangeText={setLastName}
               returnKeyType="done"
+              onSubmitEditing={next}
               containerStyle={styles.fieldSpace}
             />
+
+            <Touchable style={styles.skipBtn} scaleTo={1} onPress={skipName}>
+              <Text style={styles.skipBtnText}>Passer cette étape</Text>
+            </Touchable>
           </View>
         )}
 
@@ -369,6 +367,17 @@ const makeStyles = (colors: Palette) =>
       marginTop: spacing.md,
     },
     fieldSpace: {marginTop: spacing.md},
+    skipBtn: {
+      alignSelf: 'flex-start',
+      marginTop: spacing.lg,
+      paddingVertical: spacing.xs,
+    },
+    skipBtnText: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: colors.text3,
+      textDecorationLine: 'underline',
+    },
     input: {
       backgroundColor: colors.card,
       borderWidth: 1,

@@ -1,71 +1,28 @@
-import React, {useEffect, useState} from 'react';
-import {
-  Alert,
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Linking,
-  StyleSheet,
-} from 'react-native';
+import React from 'react';
+import {Alert, View, Text, ScrollView, StyleSheet} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import {RootStackParamList} from '../types';
 import {clearHistory, resetAllData} from '../storage';
-import {AI_PROVIDERS, getProvider} from '../config/providers';
-import {ProviderBadge} from '../assets/logos';
-import {Palette, PALETTES, ThemeName, spacing, radius, withAlpha} from '../theme';
+import {getProvider} from '../config/providers';
+import {Palette, PALETTES, ThemeName, spacing, radius} from '../theme';
 import {
   AppBar,
   AppSwitch,
-  Btn,
   Card,
   Divider,
   SectionLabel,
   Row,
   Select,
   SelectOption,
-  Touchable,
-  Field,
 } from '../components';
 import {useSettings} from '../context/SettingsContext';
-import {useSnackbar} from '../context/SnackbarContext';
 
 const THEME_OPTIONS: SelectOption[] = (Object.keys(PALETTES) as ThemeName[]).map(
   name => ({label: PALETTES[name].label, value: name}),
 );
-
-const CUSTOM_MODEL = '__custom__';
-
-interface FieldRowProps {
-  label: string;
-  value: string;
-  placeholder: string;
-  onChange: (v: string) => void;
-  secure?: boolean;
-  keyboardType?: 'default' | 'url';
-}
-
-function FieldRow({label, value, onChange, secure, keyboardType}: FieldRowProps) {
-  const {colors} = useSettings();
-  const styles = makeStyles(colors);
-  return (
-    <View style={styles.fieldRow}>
-      <Field
-        label={label}
-        value={value}
-        onChangeText={onChange}
-        secureTextEntry={secure}
-        autoCapitalize="none"
-        autoCorrect={false}
-        keyboardType={keyboardType === 'url' ? 'url' : 'default'}
-      />
-    </View>
-  );
-}
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -93,76 +50,10 @@ function ToggleRow({label, sub, value, onChange}: ToggleRowProps) {
 export default function SettingsScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
-  const {settings, setSetting, colors, accent, haptic, resetSettings} = useSettings();
-  const {show: showSnackbar} = useSnackbar();
+  const {settings, setSetting, colors, haptic, resetSettings} = useSettings();
   const styles = makeStyles(colors);
 
   const provider = getProvider(settings.aiProvider);
-  const isCloud = !!provider && provider.id !== 'custom';
-  const [modelCustom, setModelCustom] = useState(false);
-
-  // La clé API, l'URL du serveur et le nom du modèle sont édités dans des
-  // champs "brouillon" : rien n'est persisté (ni AsyncStorage, ni le
-  // trousseau système pour la clé) tant que l'utilisateur n'appuie pas sur
-  // « Enregistrer ». Évite une écriture chiffrée à chaque frappe et rend
-  // l'action explicite. On resynchronise le brouillon depuis les réglages
-  // persistés chaque fois que le fournisseur change (changement manuel,
-  // hydratation initiale, ou réinitialisation globale).
-  const [draftApiKey, setDraftApiKey] = useState(settings.aiApiKey);
-  const [draftBaseUrl, setDraftBaseUrl] = useState(settings.aiBaseUrl);
-  const [draftModelName, setDraftModelName] = useState(settings.aiModel);
-
-  useEffect(() => {
-    setDraftApiKey(settings.aiApiKey);
-    setDraftBaseUrl(settings.aiBaseUrl);
-    setDraftModelName(settings.aiModel);
-    setModelCustom(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings.aiProvider]);
-
-  const showCustomModel =
-    modelCustom ||
-    (!!provider &&
-      provider.models.length > 0 &&
-      !!draftModelName &&
-      !provider.models.includes(draftModelName));
-  const modelOptions: SelectOption[] = provider
-    ? [
-        ...provider.models.map(m => ({label: m, value: m})),
-        {label: 'Personnalisé…', value: CUSTOM_MODEL},
-      ]
-    : [];
-
-  const aiDirty =
-    draftApiKey.trim() !== settings.aiApiKey ||
-    draftBaseUrl.trim() !== settings.aiBaseUrl ||
-    draftModelName.trim() !== settings.aiModel;
-
-  const changeProvider = (v: string) => {
-    haptic();
-    setModelCustom(false);
-    setSetting('aiProvider', v);
-    const p = getProvider(v);
-    if (!p) {
-      setSetting('aiApiKey', '');
-      setSetting('aiModel', '');
-      setSetting('aiBaseUrl', '');
-    } else if (p.id !== 'custom') {
-      setSetting('aiModel', p.defaultModel);
-      setSetting('aiBaseUrl', '');
-    }
-  };
-
-  const saveAiConfig = () => {
-    setSetting('aiApiKey', draftApiKey.trim());
-    setSetting('aiModel', draftModelName.trim());
-    if (provider?.id === 'custom') {
-      setSetting('aiBaseUrl', draftBaseUrl.trim());
-    }
-    setModelCustom(false);
-    haptic();
-    showSnackbar({message: 'Configuration IA enregistrée'});
-  };
 
   const confirmClearHistory = () => {
     Alert.alert(
@@ -273,154 +164,20 @@ export default function SettingsScreen() {
         </Card>
 
         <SectionLabel label="Assistant IA" />
-        {AI_PROVIDERS.map(p => {
-          const on = settings.aiProvider === p.id;
-          return (
-            <Touchable
-              key={p.id}
-              scaleTo={0.98}
-              rippleColor={withAlpha(accent, 0.16)}
-              style={[styles.choice, on && styles.choiceOn]}
-              onPress={() => changeProvider(p.id)}>
-              <ProviderBadge
-                id={p.id}
-                fallbackIcon={p.icon}
-                fallbackColor={p.color}
-              />
-              <View style={styles.choiceMain}>
-                <Text style={styles.choiceTitle}>{p.label}</Text>
-                <Text style={styles.choiceSub}>{p.blurb}</Text>
-              </View>
-              <Icon
-                name={on ? 'check-circle' : 'circle-outline'}
-                size={22}
-                color={on ? accent : colors.text3}
-              />
-            </Touchable>
-          );
-        })}
-        <Touchable
-          scaleTo={0.98}
-          rippleColor={withAlpha(accent, 0.16)}
-          style={[styles.choice, settings.aiProvider === '' && styles.choiceOn]}
-          onPress={() => changeProvider('')}>
-          <View style={[styles.logo, {backgroundColor: colors.cardHi}]}>
-            <Icon name="cancel" size={20} color={colors.text3} />
-          </View>
-          <View style={styles.choiceMain}>
-            <Text style={styles.choiceTitle}>Sans IA</Text>
-            <Text style={styles.choiceSub}>Désactiver l’assistant</Text>
-          </View>
-          <Icon
-            name={settings.aiProvider === '' ? 'check-circle' : 'circle-outline'}
-            size={22}
-            color={settings.aiProvider === '' ? accent : colors.text3}
+        <Card>
+          <Row
+            icon="auto-fix"
+            title="Assistant IA"
+            subtitle={
+              provider
+                ? provider.id === 'custom'
+                  ? 'Serveur personnalisé'
+                  : provider.label
+                : 'Désactivé'
+            }
+            onPress={() => navigation.navigate('AiSettings')}
           />
-        </Touchable>
-
-        {(isCloud || provider?.id === 'custom') && (
-          <Card style={styles.aiFieldsCard}>
-            {isCloud && provider && (
-              <>
-              <FieldRow
-                label={`Clé API ${provider.label}`}
-                value={draftApiKey}
-                placeholder="Colle ta clé ici…"
-                onChange={setDraftApiKey}
-                secure
-              />
-              {!!provider.keyUrl && (
-                <TouchableOpacity
-                  style={styles.keyLink}
-                  onPress={() => Linking.openURL(provider.keyUrl)}>
-                  <Icon name="open-in-new" size={14} color={colors.text3} />
-                  <Text style={styles.keyLinkText}>
-                    Obtenir une clé ({provider.keyHost})
-                  </Text>
-                </TouchableOpacity>
-              )}
-              <Text style={styles.helperText}>
-                Stockée de façon chiffrée sur cet appareil (trousseau du
-                système).
-              </Text>
-              <Divider />
-              <View style={styles.fieldRow}>
-                <Text style={styles.fieldLabel}>Modèle</Text>
-                <Select
-                  value={showCustomModel ? CUSTOM_MODEL : draftModelName}
-                  options={modelOptions}
-                  onChange={v => {
-                    if (v === CUSTOM_MODEL) {
-                      setModelCustom(true);
-                    } else {
-                      setModelCustom(false);
-                      setDraftModelName(v);
-                    }
-                  }}
-                />
-                {showCustomModel && (
-                  <Field
-                    label="Nom du modèle"
-                    value={draftModelName}
-                    onChangeText={setDraftModelName}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    containerStyle={styles.modelFieldSpace}
-                  />
-                )}
-              </View>
-            </>
-          )}
-
-            {provider?.id === 'custom' && (
-            <>
-              <FieldRow
-                label="URL du serveur"
-                value={draftBaseUrl}
-                placeholder="http://mon-serveur:11434"
-                onChange={setDraftBaseUrl}
-                keyboardType="url"
-              />
-              <Divider />
-              <FieldRow
-                label="Modèle"
-                value={draftModelName}
-                placeholder="ex : llama3.2:3b"
-                onChange={setDraftModelName}
-              />
-              <Divider />
-              <FieldRow
-                label="Clé API (optionnel)"
-                value={draftApiKey}
-                placeholder="laisser vide si aucune"
-                onChange={setDraftApiKey}
-                secure
-              />
-              <Text style={styles.helperText}>
-                Stockée de façon chiffrée sur cet appareil (trousseau du
-                système).
-              </Text>
-            </>
-            )}
-            <View style={styles.saveBtnWrap}>
-              <Btn
-                onPress={saveAiConfig}
-                variant={aiDirty ? 'primary' : 'tonal'}
-                icon="content-save-outline">
-                Enregistrer
-              </Btn>
-            </View>
-          </Card>
-        )}
-        <Text style={styles.aiHint}>
-          {provider
-            ? provider.id === 'custom'
-              ? 'Serveur compatible API OpenAI (Ollama, vLLM, LM Studio…). Le téléphone doit pouvoir joindre cette adresse.'
-              : 'Ta clé reste stockée sur ton téléphone et n’est envoyée qu’à ' +
-                provider.label +
-                '. Tu es facturé selon ton usage chez le fournisseur.'
-            : 'Aucune IA active. Choisis un fournisseur pour générer des listes et discuter.'}
-        </Text>
+        </Card>
 
         <SectionLabel label="Navigation" />
         <Card>
@@ -467,7 +224,7 @@ export default function SettingsScreen() {
           <Divider />
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Version</Text>
-            <Text style={styles.infoValue}>1.4.0</Text>
+            <Text style={styles.infoValue}>1.0.0</Text>
           </View>
         </Card>
 
@@ -515,19 +272,6 @@ const makeStyles = (colors: Palette) =>
     marginTop: -4,
   },
   keyLinkText: {fontSize: 13, fontWeight: '700', color: colors.text3},
-  helperText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.text3,
-    paddingHorizontal: spacing.lg,
-    paddingBottom: 12,
-    marginTop: -4,
-  },
-  saveBtnWrap: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: 4,
-    paddingBottom: spacing.lg,
-  },
   choice: {
     flexDirection: 'row',
     alignItems: 'center',

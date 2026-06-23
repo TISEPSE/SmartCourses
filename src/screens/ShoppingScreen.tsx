@@ -292,7 +292,7 @@ export default function ShoppingScreen() {
             style={styles.iconBtn}
             borderless
             scaleTo={1}
-            onLongPress={openDeleteListModal}>
+            onPress={openDeleteListModal}>
             <Icon name="trash-can-outline" size={22} color={colors.text3} />
           </Touchable>
         </View>
