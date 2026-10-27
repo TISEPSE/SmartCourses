@@ -51,6 +51,7 @@
     "node": ">= 22.11.0"
   },
   "overrides": {
-    "image-size": "^2.0.3"
+    "image-size": "^2.0.3",
+    "fast-xml-parser": "^5.7.0"
   }
 }
